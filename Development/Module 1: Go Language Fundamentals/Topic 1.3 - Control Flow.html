@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Go Control Flow Lab — Topic 1.3</title>
+<style>
+  :root {
+    --bg: #1e1e1e; --surface: #252526; --surface-2: #1a1a1a; --border: #3c3c3c;
+    --text: #cccccc; --muted: #858585; --accent: #3794ff; --accent-dim: #1a3a5c;
+    --success: #4ec9b0; --warn: #dcdcaa; --danger: #f48771;
+    --radius: 8px; --mono: Consolas, "Courier New", monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--text);
+    line-height: 1.6; padding: 24px; max-width: 900px; margin: 0 auto;
+  }
+  h1 { font-size: 1.5rem; margin-bottom: 4px; }
+  h2 { font-size: 1.05rem; margin: 20px 0 8px; }
+  h3 { font-size: 0.92rem; margin: 14px 0 6px; color: var(--text); }
+  p, li { color: var(--muted); font-size: 0.88rem; margin-bottom: 8px; }
+  li { margin-left: 18px; }
+  code { font-family: var(--mono); background: var(--surface); padding: 2px 6px; border-radius: 4px; color: var(--accent); font-size: 0.85em; }
+  .subtitle { margin-bottom: 16px; }
+  .phase-bar { display: flex; gap: 6px; flex-wrap: wrap; margin: 14px 0 18px; font-size: 0.75rem; }
+  .phase { flex: 1; min-width: 130px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); text-align: center; }
+  .phase.active { border-color: var(--accent); background: var(--accent-dim); color: #fff; }
+  .phase small { display: block; color: var(--muted); font-size: 0.68rem; margin-top: 2px; }
+  .progress-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin: 10px 0 4px; }
+  .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width .3s; }
+  .progress-text { font-size: 0.78rem; color: var(--muted); margin-bottom: 14px; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 14px 0; }
+  .tab { padding: 6px 12px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--text); cursor: pointer; font-size: 0.8rem; font-family: inherit; }
+  .tab.active { background: var(--accent-dim); border-color: var(--accent); color: #fff; }
+  .tab.done::after { content: " \2713"; color: var(--success); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 14px; }
+  .card strong { color: var(--text); font-size: 0.95rem; }
+  .callout { background: var(--accent-dim); border-left: 3px solid var(--accent); padding: 10px 12px; border-radius: 0 var(--radius) var(--radius) 0; margin: 12px 0; font-size: 0.86rem; color: var(--text); }
+  .callout.warn { background: #3a3320; border-left-color: var(--warn); }
+  .callout.good { background: #1f3330; border-left-color: var(--success); }
+  .callout.bad { background: #3a2422; border-left-color: var(--danger); }
+  .callout strong { color: var(--text); }
+  .code-block { font-family: var(--mono); font-size: 0.78rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; white-space: pre; overflow-x: auto; margin: 10px 0; line-height: 1.55; color: var(--text); }
+  .kw { color: #569cd6; } .str { color: #ce9178; } .num { color: #b5cea8; }
+  .cmt { color: #6a9955; } .typ { color: #4ec9b0; } .fn { color: #dcdcaa; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin: 10px 0; }
+  th, td { border: 1px solid var(--border); padding: 7px 9px; text-align: left; color: var(--text); }
+  th { background: var(--surface); color: var(--muted); font-weight: 600; }
+  .flow { display: flex; align-items: stretch; gap: 4px; flex-wrap: wrap; margin: 14px 0; font-size: 0.72rem; }
+  .flow-box { flex: 1; min-width: 100px; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); text-align: center; color: var(--text); }
+  .flow-box.start { border-color: var(--accent); background: var(--accent-dim); }
+  .flow-box.exit { border-color: var(--success); }
+  .flow-box b { display: block; color: var(--muted); font-size: 0.65rem; margin-bottom: 3px; letter-spacing: .05em; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+  button { padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.82rem; font-family: inherit; margin: 4px 4px 4px 0; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-primary:disabled, .btn-ghost:disabled { opacity: .4; cursor: not-allowed; }
+  label.check { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 0.86rem; cursor: pointer; color: var(--text); }
+  label.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+  .quiz { background: #2a2a1a; border: 1px solid #555; border-radius: var(--radius); padding: 12px; margin-top: 12px; font-size: 0.86rem; color: var(--text); }
+  .quiz-result { margin-top: 8px; font-size: 0.84rem; }
+  .ok { color: var(--success); } .bad-text { color: var(--danger); }
+  .nav { display: flex; justify-content: space-between; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .hidden { display: none; }
+  .badge { display: inline-block; font-size: 0.68rem; padding: 2px 8px; border-radius: 20px; border: 1px solid var(--border); color: var(--muted); margin-right: 6px; }
+  .badge.accent { border-color: var(--accent); color: var(--accent); }
+  footer { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--border); font-size: 0.78rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<h1>Go Control Flow Lab</h1>
+<p class="subtitle">
+  <span class="badge accent">Module 1</span><span class="badge">Topic 1.3</span><span class="badge">Hands-on lab</span><br />
+  Learn the five control-flow constructs, then apply each one to your <code>cli-todo</code> project.
+</p>
+<div class="phase-bar">
+  <div class="phase active">1. Learn concept<small>five constructs, visualized</small></div>
+  <div class="phase">2. Read your code<small>what cli-todo already does</small></div>
+  <div class="phase">3. Apply step by step<small>six guided changes</small></div>
+  <div class="phase">4. Verify<small>fmt, vet, run</small></div>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
+<p class="progress-text" id="progText">0 of 11 checkpoints complete</p>
+<h2>Part 1 &mdash; Learn the control-flow toolkit</h2>
+<p>Read the flow diagram first, predict the output, then read the code.</p>
+<div class="tabs" id="lessonTabs"></div>
+<div id="lessonBody"></div>
+<div class="nav">
+  <button class="btn-ghost" id="prev">Previous</button>
+  <button class="btn-primary" id="next">Next</button>
+</div>
+<h2>Part 2 &mdash; Read your current cli-todo like an engineer</h2>
+<p>Your file already branches. The job now is to make those branches complete and honest.</p>
+<div class="grid-2">
+  <div class="card">
+    <strong>Already applied</strong>
+    <ul>
+      <li><code>if completed</code> picks the initial status</li>
+      <li><code>if/else</code> prints validation PASS or FAIL</li>
+      <li><code>switch status</code> maps three known states</li>
+    </ul>
+  </div>
+  <div class="card">
+    <strong>Needs work</strong>
+    <ul>
+      <li>Validation hardcodes <code>100</code>, <code>1</code>, <code>5</code> instead of using your constants</li>
+      <li><code>calculateCompletionRate</code> has an <code>else</code> after a <code>return</code></li>
+      <li>The status <code>switch</code> has no <code>default</code></li>
+    </ul>
+  </div>
+</div>
+<div class="callout bad">
+  <strong>Real bug to fix first.</strong> <code>calculateCompletionRate(2, 3)</code> returns <code>0.667</code>,
+  but the caller prints it with <code>%.1f%%</code>, so the terminal shows <code>0.7%</code> instead of <code>66.7%</code>.
+  The function name promises a rate in percent; the body returns a fraction. Fix the contract before adding anything new.
+</div>
+<h2>Part 3 &mdash; Apply Topic 1.3 to cli-todo</h2>
+<p>Work in order. Later steps depend on the percentage and status contracts settled in the first three.</p>
+<div class="tabs" id="stepTabs"></div>
+<div id="stepBody"></div>
+<h2>Part 4 &mdash; Verify like a backend engineer</h2>
+<div class="grid-2">
+  <div>
+    <h3>Run the quality gate</h3>
+    <div class="code-block">cd "E:\Career Track\Focused Area\Development\Go Backend Path with AWS\Module 01 - Go Language Fundamentals\_projects\cli-todo"
+go fmt ./...
+go vet ./...
+go run .</div>
+    <p>Expected output includes <code>Validation: PASS</code>, a progress bar near <code>[#######---] 66.7%</code>,
+       <code>Status: Completed</code>, and your deferred line printed last.</p>
+  </div>
+  <div>
+    <h3>Review questions</h3>
+    <div class="callout warn">
+      <ul>
+        <li>Can every loop terminate?</li>
+        <li>Does every <code>switch</code> define unknown-input behavior?</li>
+        <li>Do early returns remove nesting instead of adding it?</li>
+        <li>Is each <code>defer</code> tied to real cleanup or a function-boundary action?</li>
+        <li>Do function names describe domain behavior, not syntax?</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<div id="finish" class="hidden callout good">
+  <strong>Topic 1.3 complete.</strong> You can explain all three <code>for</code> forms, write guard clauses with
+  <code>if</code> init statements, map domain states with a safe <code>default</code>, distinguish
+  <code>continue</code> / <code>break</code> / <code>return</code>, and predict LIFO <code>defer</code> order &mdash;
+  and it all runs in <code>cli-todo</code> with <code>fmt</code>, <code>vet</code>, and <code>run</code> clean.
+  Next: Topic 1.4 introduces slices and structs so these loops can iterate real task collections.
+</div>
+<footer>
+  Progress is saved in this browser via <code>localStorage</code>. Sync your takeaways into
+  <code>Topic 1.3 - Control Flow/notes.md</code> when you finish.
+</footer>
+<script>
+const LESSONS = [
+  {
+    id: "if",
+    title: "1. if / else",
+    idea: "Run the first branch whose condition is true, then skip the rest. Prefer early returns so the happy path stays flat.",
+    flow: ["evaluate condition", "true &rarr; run branch", "false &rarr; test next", "continue after chain"],
+    code: `<span class="kw">if</span> clean := strings.<span class="fn">TrimSpace</span>(title); clean == <span class="str">""</span> {
