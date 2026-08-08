@@ -41,7 +41,8 @@
   .callout.good { background: #1f3330; border-left-color: var(--success); }
   .callout.bad { background: #3a2422; border-left-color: var(--danger); }
   .callout strong { color: var(--text); }
-  .code-block { font-family: var(--mono); font-size: 0.78rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; white-space: pre; overflow-x: auto; margin: 10px 0; line-height: 1.55; color: var(--text); }
+  .callout li, .card li { color: var(--text); }
+  .code-block { font-family: var(--mono); font-size: 0.78rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; white-space: pre; overflow-x: auto; margin: 10px 0; line-height: 1.55; color: var(--text); min-width: 0; max-width: 100%; }
   .kw { color: #569cd6; } .str { color: #ce9178; } .num { color: #b5cea8; }
   .cmt { color: #6a9955; } .typ { color: #4ec9b0; } .fn { color: #dcdcaa; }
   table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin: 10px 0; }
@@ -52,8 +53,13 @@
   .flow-box.start { border-color: var(--accent); background: var(--accent-dim); }
   .flow-box.exit { border-color: var(--success); }
   .flow-box b { display: block; color: var(--muted); font-size: 0.65rem; margin-bottom: 3px; letter-spacing: .05em; }
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+  /* minmax(0, 1fr) keeps a long unbreakable line in a .code-block from
+     blowing out its column; the pre scrolls instead of the grid stretching. */
+  .grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+  .grid-2 > * { min-width: 0; }
+  @media (max-width: 700px) { .grid-2 { grid-template-columns: minmax(0, 1fr); } }
+  .grid-2 ul { margin: 0; }
+  .grid-2 li { margin-bottom: 6px; }
   button { padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.82rem; font-family: inherit; margin: 4px 4px 4px 0; }
   .btn-primary { background: var(--accent); color: #fff; }
   .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
@@ -71,19 +77,23 @@
 </style>
 </head>
 <body>
+
 <h1>Go Control Flow Lab</h1>
 <p class="subtitle">
   <span class="badge accent">Module 1</span><span class="badge">Topic 1.3</span><span class="badge">Hands-on lab</span><br />
   Learn the five control-flow constructs, then apply each one to your <code>cli-todo</code> project.
 </p>
+
 <div class="phase-bar">
   <div class="phase active">1. Learn concept<small>five constructs, visualized</small></div>
   <div class="phase">2. Read your code<small>what cli-todo already does</small></div>
   <div class="phase">3. Apply step by step<small>six guided changes</small></div>
   <div class="phase">4. Verify<small>fmt, vet, run</small></div>
 </div>
+
 <div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
 <p class="progress-text" id="progText">0 of 11 checkpoints complete</p>
+
 <h2>Part 1 &mdash; Learn the control-flow toolkit</h2>
 <p>Read the flow diagram first, predict the output, then read the code.</p>
 <div class="tabs" id="lessonTabs"></div>
@@ -92,6 +102,7 @@
   <button class="btn-ghost" id="prev">Previous</button>
   <button class="btn-primary" id="next">Next</button>
 </div>
+
 <h2>Part 2 &mdash; Read your current cli-todo like an engineer</h2>
 <p>Your file already branches. The job now is to make those branches complete and honest.</p>
 <div class="grid-2">
@@ -117,19 +128,22 @@
   but the caller prints it with <code>%.1f%%</code>, so the terminal shows <code>0.7%</code> instead of <code>66.7%</code>.
   The function name promises a rate in percent; the body returns a fraction. Fix the contract before adding anything new.
 </div>
+
 <h2>Part 3 &mdash; Apply Topic 1.3 to cli-todo</h2>
 <p>Work in order. Later steps depend on the percentage and status contracts settled in the first three.</p>
 <div class="tabs" id="stepTabs"></div>
 <div id="stepBody"></div>
+
 <h2>Part 4 &mdash; Verify like a backend engineer</h2>
 <div class="grid-2">
   <div>
     <h3>Run the quality gate</h3>
-    <div class="code-block">cd "E:\Career Track\Focused Area\Development\Go Backend Path with AWS\Module 01 - Go Language Fundamentals\_projects\cli-todo"
+    <div class="code-block"><span class="cmt"># from this lab folder</span>
+cd ..\..\_projects\cli-todo
 go fmt ./...
 go vet ./...
 go run .</div>
-    <p>Expected output includes <code>Validation: PASS</code>, a progress bar near <code>[#######---] 66.7%</code>,
+    <p>Expected output includes <code>Validation: PASS</code>, a progress bar of <code>[######----] 66.7%</code>,
        <code>Status: Completed</code>, and your deferred line printed last.</p>
   </div>
   <div>
@@ -145,6 +159,7 @@ go run .</div>
     </div>
   </div>
 </div>
+
 <div id="finish" class="hidden callout good">
   <strong>Topic 1.3 complete.</strong> You can explain all three <code>for</code> forms, write guard clauses with
   <code>if</code> init statements, map domain states with a safe <code>default</code>, distinguish
@@ -152,10 +167,12 @@ go run .</div>
   and it all runs in <code>cli-todo</code> with <code>fmt</code>, <code>vet</code>, and <code>run</code> clean.
   Next: Topic 1.4 introduces slices and structs so these loops can iterate real task collections.
 </div>
+
 <footer>
   Progress is saved in this browser via <code>localStorage</code>. Sync your takeaways into
   <code>Topic 1.3 - Control Flow/notes.md</code> when you finish.
 </footer>
+
 <script>
 const LESSONS = [
   {
@@ -164,3 +181,285 @@ const LESSONS = [
     idea: "Run the first branch whose condition is true, then skip the rest. Prefer early returns so the happy path stays flat.",
     flow: ["evaluate condition", "true &rarr; run branch", "false &rarr; test next", "continue after chain"],
     code: `<span class="kw">if</span> clean := strings.<span class="fn">TrimSpace</span>(title); clean == <span class="str">""</span> {
+    <span class="kw">return</span> <span class="kw">false</span>
+} <span class="kw">else if</span> <span class="fn">len</span>([]<span class="typ">rune</span>(clean)) > maxTitleLength {
+    <span class="kw">return</span> <span class="kw">false</span>
+}
+<span class="kw">return</span> <span class="kw">true</span>`,
+    inCli: "Validate a title and priority. The init statement keeps <code>clean</code> scoped to the decision that needs it.",
+    inBackend: "Validate request payloads, guard authorization, and return early when preconditions fail.",
+    trap: "A variable declared in the init statement exists only inside that if/else chain &mdash; it is gone afterwards.",
+    quiz: { q: "Where can you use <code>clean</code> from <code>if clean := ...; cond {}</code>?", options: [["Anywhere in the function", false], ["Only inside the if/else chain", true]], why: "The init statement creates a scope limited to the whole if/else chain." }
+  },
+  {
+    id: "for",
+    title: "2. for (all forms)",
+    idea: "Go has one loop keyword. A three-part for counts, a condition-only for behaves like while, and a bare for repeats until something exits it.",
+    flow: ["initialize", "test condition", "run body", "advance", "repeat or exit"],
+    code: `<span class="cmt">// Counted &mdash; you know how many times</span>
+<span class="kw">for</span> slot := <span class="num">0</span>; slot &lt; width; slot++ { ... }
+
+<span class="cmt">// Condition-only &mdash; Go's "while"</span>
+<span class="kw">for</span> attempts &lt; <span class="num">3</span> { ... }
+
+<span class="cmt">// Bare &mdash; runs until break/return/cancel</span>
+<span class="kw">for</span> { ... }`,
+    inCli: "Render a ten-slot progress bar and scan a bounded range of priority values.",
+    inBackend: "Consume records, retry a bounded operation, or run a worker loop until cancellation.",
+    trap: "A bare <code>for</code> never ends on its own. Always know which <code>break</code>, <code>return</code>, or cancellation stops it.",
+    quiz: { q: "Which Go keyword writes a while loop?", options: [["while", false], ["for", true]], why: "Go has no <code>while</code>. A condition-only <code>for</code> fills that role." }
+  },
+  {
+    id: "switch",
+    title: "3. switch",
+    idea: "Match one case and stop. Go does not fall through by default, so no break statements are needed.",
+    flow: ["evaluate value", "find matching case", "run that one case", "exit switch"],
+    code: `<span class="kw">switch</span> status {
+<span class="kw">case</span> StatusPending:
+    <span class="kw">return</span> <span class="str">"Pending"</span>
+<span class="kw">case</span> StatusInProgress:
+    <span class="kw">return</span> <span class="str">"In Progress"</span>
+<span class="kw">case</span> StatusCompleted:
+    <span class="kw">return</span> <span class="str">"Completed"</span>
+<span class="kw">default</span>:
+    <span class="kw">return</span> <span class="str">"Unknown"</span>
+}
+
+<span class="cmt">// Expressionless switch replaces a long if/else chain</span>
+<span class="kw">switch</span> {
+<span class="kw">case</span> rate >= <span class="num">100</span>: <span class="kw">return</span> <span class="str">"done"</span>
+<span class="kw">case</span> rate > <span class="num">0</span>:   <span class="kw">return</span> <span class="str">"in progress"</span>
+}`,
+    inCli: "Turn internal status integers into user-facing labels, with an explicit default for unexpected values.",
+    inBackend: "Route CLI or HTTP commands, map domain states, and classify response codes.",
+    trap: "<code>fallthrough</code> runs the next case body without testing its condition. It is rare &mdash; do not use it to imitate C.",
+    quiz: { q: "Does a Go switch case fall through to the next case by default?", options: [["Yes", false], ["No", true]], why: "Go exits after the matching case unless you write <code>fallthrough</code> explicitly." }
+  },
+  {
+    id: "jumps",
+    title: "4. break / continue / labels",
+    idea: "continue skips the rest of this iteration. break exits the nearest loop or switch. A label names an outer loop when nesting makes the target ambiguous.",
+    flow: ["enter iteration", "continue &rarr; next iteration", "break &rarr; leave loop", "code after loop"],
+    code: `<span class="kw">for</span> candidate := start; candidate &lt;= maxPriority; candidate++ {
+    <span class="kw">if</span> candidate &lt; minPriority {
+        <span class="kw">continue</span> <span class="cmt">// skip, try the next candidate</span>
+    }
+    <span class="kw">return</span> candidate <span class="cmt">// found &mdash; leave the function entirely</span>
+}
+
+Outer:
+<span class="kw">for</span> ... {
+    <span class="kw">for</span> ... {
+        <span class="kw">break</span> Outer <span class="cmt">// exits the OUTER loop</span>
+    }
+}`,
+    inCli: "Skip invalid priority candidates and stop as soon as the first valid one is found.",
+    inBackend: "Skip malformed records in a batch, or leave nested processing on a terminal condition.",
+    trap: "Inside a <code>switch</code> that sits in a loop, a plain <code>break</code> exits the switch, not the loop. That surprises most newcomers.",
+    quiz: { q: "Which keyword leaves the nearest loop but keeps running the function?", options: [["continue", false], ["break", true], ["return", false]], why: "<code>break</code> exits the loop; <code>return</code> would exit the whole function." }
+  },
+  {
+    id: "defer",
+    title: "5. defer",
+    idea: "defer evaluates its arguments now but runs the call when the surrounding function returns. Multiple defers run last-in, first-out.",
+    flow: ["register defer", "function keeps running", "function returns", "deferred calls run LIFO"],
+    code: `<span class="kw">func</span> <span class="fn">work</span>() {
+    <span class="kw">defer</span> fmt.<span class="fn">Println</span>(<span class="str">"registered first"</span>)
+    <span class="kw">defer</span> fmt.<span class="fn">Println</span>(<span class="str">"registered second"</span>)
+    fmt.<span class="fn">Println</span>(<span class="str">"working"</span>)
+}
+
+<span class="cmt">// Output:
+// working
+// registered second
+// registered first</span>`,
+    inCli: "Print a completion line at the demo boundary, registered next to the setup it belongs to.",
+    inBackend: "Close files and response bodies, unlock mutexes, and stop timers on every return path including error paths.",
+    trap: "Do not <code>defer</code> inside a long loop when each iteration must release a resource &mdash; deferred calls wait for the function, not the iteration. Extract one iteration into its own function.",
+    quiz: { q: "Two defers registered in order A then B. Which runs first?", options: [["A", false], ["B", true]], why: "Deferred calls run last-in, first-out, so the most recently registered runs first." }
+  },
+];
+
+const STEPS = [
+  {
+    id: "s1", title: "Step 1 — Fix the percentage contract", concept: "if, early return",
+    why: "The function name promises a rate and the caller formats it as a percentage, but the body returns a fraction. Settle the contract before anything depends on it.",
+    doThis: "In <code>calculateCompletionRate</code>, keep the <code>total == 0</code> guard, delete the unnecessary <code>else</code>, and return <code>(done / total) * 100</code>. The parameters are already <code>float64</code>, so no conversion is needed.",
+    hint: `<span class="kw">if</span> total == <span class="num">0</span> {
+    <span class="kw">return</span> <span class="num">0</span>
+}
+<span class="kw">return</span> (done / total) * <span class="num">100</span>`,
+    check: "2 done out of 3 prints <code>Progress: 66.7%</code>."
+  },
+  {
+    id: "s2", title: "Step 2 — Make validation read like policy", concept: "if with init statement",
+    why: "Guard clauses expose each rejection reason on its own line, and your constants should be the single source of truth for the rules.",
+    doThis: "Refactor <code>validateTask</code> to use an <code>if</code> init statement for <code>strings.TrimSpace(title)</code>, then replace the literals <code>100</code>, <code>1</code>, and <code>5</code> with <code>maxTitleLength</code>, <code>minPriority</code>, and <code>maxPriority</code>.",
+    hint: `<span class="kw">if</span> clean := strings.<span class="fn">TrimSpace</span>(title); clean == <span class="str">""</span> {
+    <span class="kw">return</span> <span class="kw">false</span>
+} <span class="kw">else if</span> <span class="fn">len</span>([]<span class="typ">rune</span>(clean)) > maxTitleLength {
+    <span class="kw">return</span> <span class="kw">false</span>
+}
+<span class="kw">if</span> priority &lt; minPriority || priority > maxPriority {
+    <span class="kw">return</span> <span class="kw">false</span>
+}
+<span class="kw">return</span> <span class="kw">true</span>`,
+    check: "Blank titles, titles over 100 runes, and priorities outside 1&ndash;5 all fail."
+  },
+  {
+    id: "s3", title: "Step 3 — Extract the status decision", concept: "switch with default",
+    why: "<code>DisplayReport</code> currently mixes deciding a label with printing it. A function that returns a label is testable and reusable, and a <code>default</code> makes unknown input visible instead of silent.",
+    doThis: "Write <code>statusLabel(status int) string</code>. Move the <code>switch</code> into it, return a string from every case, and add a <code>default</code> returning <code>\"Unknown\"</code>. Call it from <code>DisplayReport</code>.",
+    hint: `<span class="kw">func</span> <span class="fn">statusLabel</span>(status <span class="typ">int</span>) <span class="typ">string</span> {
+    <span class="kw">switch</span> status {
+    <span class="kw">case</span> StatusPending:
+        <span class="kw">return</span> <span class="str">"Pending"</span>
+    <span class="cmt">// ...other cases...</span>
+    <span class="kw">default</span>:
+        <span class="kw">return</span> <span class="str">"Unknown"</span>
+    }
+}`,
+    check: "Known statuses keep their labels; passing <code>99</code> prints <code>Status: Unknown</code> instead of a blank line."
+  },
+  {
+    id: "s4", title: "Step 4 — Draw a progress bar with for", concept: "counted for loop",
+    why: "A loop should do real repeated work. Rendering a bar is the most honest small use of a counted loop in a CLI.",
+    doThis: "Write <code>displayProgressBar(rate float64)</code>. Use <code>const width = 10</code>, compute how many slots are filled, then run a counted <code>for</code> printing <code>#</code> for filled slots and <code>-</code> for the rest. Call it after the progress line.",
+    hint: `<span class="kw">const</span> width = <span class="num">10</span>
+filled := <span class="typ">int</span>(rate * width / <span class="num">100</span>)
+fmt.<span class="fn">Print</span>(<span class="str">"["</span>)
+<span class="kw">for</span> slot := <span class="num">0</span>; slot &lt; width; slot++ {
+    <span class="kw">if</span> slot &lt; filled {
+        fmt.<span class="fn">Print</span>(<span class="str">"#"</span>)
+    } <span class="kw">else</span> {
+        fmt.<span class="fn">Print</span>(<span class="str">"-"</span>)
+    }
+}
+fmt.<span class="fn">Printf</span>(<span class="str">"] %.1f%%\\n"</span>, rate)`,
+    check: "66.7% renders as <code>[######----] 66.7%</code> (six filled slots, since 66.7 &times; 10 / 100 truncates to 6)."
+  },
+  {
+    id: "s5", title: "Step 5 — Scan with continue and break", concept: "continue, break, return",
+    why: "These keywords matter when a loop filters candidates and must stop at the first success. Comparing an early <code>return</code> against a <code>break</code> teaches the difference precisely.",
+    doThis: "Write <code>findFirstValidPriority(start int) int</code>. Loop from <code>start</code> through <code>maxPriority</code>; <code>continue</code> while the candidate is below <code>minPriority</code>, and return the first valid candidate. Return <code>0</code> after the loop for not-found. Then rewrite it once using a <code>found</code> variable and <code>break</code>, and decide which version you would ship.",
+    hint: `<span class="kw">for</span> candidate := start; candidate &lt;= maxPriority; candidate++ {
+    <span class="kw">if</span> candidate &lt; minPriority {
+        <span class="kw">continue</span>
+    }
+    <span class="kw">return</span> candidate
+}
+<span class="kw">return</span> <span class="num">0</span> <span class="cmt">// not found</span>`,
+    check: "start = -2 returns 1, start = 4 returns 4, start = 6 returns 0."
+  },
+  {
+    id: "s6", title: "Step 6 — Close the demo with defer", concept: "defer, LIFO order",
+    why: "<code>defer</code> is how Go guarantees an action happens no matter which return path executes. Practising it on a print statement builds the habit before real file handles arrive in later topics.",
+    doThis: "Make the first line of <code>runCliTodoDemo</code> a <code>defer</code> that prints a completion message, and remove the duplicate completion print from <code>main</code>. Then temporarily add a second <code>defer</code> to watch LIFO order, and delete it once you have seen it.",
+    hint: `<span class="kw">func</span> <span class="fn">runCliTodoDemo</span>() {
+    <span class="kw">defer</span> fmt.<span class="fn">Println</span>(<span class="str">"--- demo finished ---"</span>)
+    <span class="cmt">// existing demo body</span>
+}`,
+    check: "The deferred message is the last line printed, even though it is registered first."
+  },
+];
+
+const KEY = "go-topic13-v1";
+let state = JSON.parse(localStorage.getItem(KEY) || '{"lesson":"if","step":"s1","done":{}}');
+const TOTAL = LESSONS.length + STEPS.length;
+
+function save() { localStorage.setItem(KEY, JSON.stringify(state)); render(); }
+function lessonIdx() { return Math.max(0, LESSONS.findIndex(l => l.id === state.lesson)); }
+
+function quiz(id, correct) {
+  const el = document.getElementById("qr-" + id);
+  const lesson = LESSONS.find(l => l.id === id);
+  el.innerHTML = correct
+    ? '<span class="ok">Correct.</span> ' + lesson.quiz.why
+    : '<span class="bad-text">Not quite.</span> ' + lesson.quiz.why;
+}
+
+function renderLesson() {
+  const L = LESSONS[lessonIdx()];
+  document.getElementById("lessonTabs").innerHTML = LESSONS.map(l =>
+    '<button class="tab' + (state.lesson === l.id ? ' active' : '') + (state.done[l.id] ? ' done' : '') +
+    '" data-id="' + l.id + '">' + l.title + '</button>'
+  ).join("");
+  document.querySelectorAll("#lessonTabs .tab").forEach(t => {
+    t.onclick = () => { state.lesson = t.dataset.id; save(); };
+  });
+
+  const flow = L.flow.map((f, i) =>
+    '<div class="flow-box' + (i === 0 ? ' start' : (i === L.flow.length - 1 ? ' exit' : '')) + '">' +
+    '<b>' + String(i + 1).padStart(2, "0") + '</b>' + f + '</div>'
+  ).join("");
+
+  const options = L.quiz.options.map(o =>
+    '<button class="btn-primary" onclick="quiz(\'' + L.id + '\',' + o[1] + ')">' + o[0] + '</button>'
+  ).join("");
+
+  document.getElementById("lessonBody").innerHTML =
+    '<div class="card"><strong>' + L.title + '</strong><p>' + L.idea + '</p>' +
+      '<div class="flow">' + flow + '</div>' +
+      '<div class="code-block">' + L.code + '</div>' +
+    '</div>' +
+    '<div class="grid-2">' +
+      '<div class="card"><strong>In this CLI</strong><p>' + L.inCli + '</p></div>' +
+      '<div class="card"><strong>In a Go backend</strong><p>' + L.inBackend + '</p></div>' +
+    '</div>' +
+    '<div class="callout warn"><strong>Common trap:</strong> ' + L.trap + '</div>' +
+    '<div class="quiz"><strong>Predict before you run:</strong> ' + L.quiz.q + '<br />' + options +
+      '<div class="quiz-result" id="qr-' + L.id + '"></div></div>' +
+    '<label class="check"><input type="checkbox" data-id="' + L.id + '"> I can explain ' + L.title.replace(/^\d+\.\s*/, "") + ' in my own words</label>';
+
+  document.getElementById("prev").disabled = lessonIdx() === 0;
+  document.getElementById("next").disabled = lessonIdx() === LESSONS.length - 1;
+}
+
+function renderSteps() {
+  const S = STEPS.find(s => s.id === state.step) || STEPS[0];
+  document.getElementById("stepTabs").innerHTML = STEPS.map((s, i) =>
+    '<button class="tab' + (state.step === s.id ? ' active' : '') + (state.done[s.id] ? ' done' : '') +
+    '" data-id="' + s.id + '">Step ' + (i + 1) + '</button>'
+  ).join("");
+  document.querySelectorAll("#stepTabs .tab").forEach(t => {
+    t.onclick = () => { state.step = t.dataset.id; save(); };
+  });
+
+  document.getElementById("stepBody").innerHTML =
+    '<div class="card"><strong>' + S.title + '</strong> <span class="badge accent">' + S.concept + '</span>' +
+      '<h3>Why this change</h3><p>' + S.why + '</p>' +
+      '<h3>Your instruction</h3><p>' + S.doThis + '</p>' +
+      '<h3>Hint &mdash; type it, do not paste it</h3><div class="code-block">' + S.hint + '</div>' +
+      '<div class="callout good"><strong>Checkpoint:</strong> ' + S.check + '</div>' +
+      '<label class="check"><input type="checkbox" data-id="' + S.id + '"> Applied, run, and verified in cli_todo.go</label>' +
+    '</div>';
+}
+
+function render() {
+  renderLesson();
+  renderSteps();
+
+  document.querySelectorAll("label.check input").forEach(cb => {
+    cb.checked = !!state.done[cb.dataset.id];
+    cb.onchange = e => { state.done[cb.dataset.id] = e.target.checked; save(); };
+  });
+
+  const n = Object.values(state.done).filter(Boolean).length;
+  document.getElementById("prog").style.width = (n / TOTAL * 100) + "%";
+  document.getElementById("progText").textContent = n + " of " + TOTAL + " checkpoints complete";
+  document.getElementById("finish").classList.toggle("hidden", n < TOTAL);
+}
+
+document.getElementById("prev").onclick = () => {
+  const i = lessonIdx();
+  if (i > 0) { state.lesson = LESSONS[i - 1].id; save(); }
+};
+document.getElementById("next").onclick = () => {
+  const i = lessonIdx();
+  if (i < LESSONS.length - 1) { state.lesson = LESSONS[i + 1].id; save(); }
+};
+
+render();
+</script>
+</body>
+</html>
