@@ -75,6 +75,15 @@
     .footer { margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--border); font-size: 0.78rem; color: var(--muted); }
     blockquote { border-left: 3px solid var(--warn); padding: 8px 12px; margin: 10px 0; font-style: italic; color: var(--muted); font-size: 0.86rem; }
     .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .interview-q { cursor: pointer; transition: border-color 0.2s; }
+    .interview-q:hover { border-color: var(--accent); }
+    .interview-q.open { border-color: var(--accent); }
+    .interview-q .card-title::after { content: " ▾"; color: var(--muted); font-size: 0.8rem; }
+    .interview-q.open .card-title::after { content: " ▴"; }
+    .interview-q .answer { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 0.86rem; color: var(--text); line-height: 1.55; }
+    .whiteboard-list { list-style: none; padding: 0; margin: 8px 0; }
+    .whiteboard-list li { padding: 4px 0 4px 16px; position: relative; font-size: 0.86rem; color: var(--muted); }
+    .whiteboard-list li::before { content: "□"; position: absolute; left: 0; color: var(--accent); }
   </style>
 </head>
 <body>
@@ -111,7 +120,50 @@ const TABS = [
   { id: "invalidation", label: "Invalidation" },
   { id: "staleness", label: "Staleness" },
   { id: "strategy", label: "Strategy" },
+  { id: "interview", label: "Mock Interview" },
 ];
+
+const INTERVIEW_QUESTIONS = [
+  {
+    q: "When would you pick cache-aside over write-through?",
+    a: "Cache-aside when reads dominate (95:5+) and eventual consistency is OK — e.g. Amazon product pages. The app loads cache on miss, so you only cache hot keys and cache failure doesn't block reads. Write-through is for data that must be consistent immediately after every write (sessions, bank balances). Trade-off: cache-aside has a miss penalty and app complexity; write-through adds write latency but zero stale-read window.",
+  },
+  {
+    q: "How do you handle cache invalidation in a multi-region setup?",
+    a: "Use event-driven invalidation: on write, publish to Kafka/PubSub and all regions delete or refresh the key. Shopify does this for inventory across 12 regions. Never rely on TTL alone for cross-region consistency — propagation is ms–seconds but bounded. Combine with write-invalidate on the origin and a short TTL as safety net. Versioning/tags help when one entity maps to many cached pages (CMS).",
+  },
+  {
+    q: "What's your staleness budget for a product page vs checkout inventory?",
+    a: "Product catalog: ~30 seconds acceptable — stale price briefly is annoying but rarely catastrophic; use write-invalidate on price change + 5min TTL safety net. Checkout inventory: zero staleness — overselling is a business/regulatory problem; skip cache on the reservation path or use write-through with immediate invalidation. Always define the budget in seconds before picking pattern or TTL.",
+  },
+  {
+    q: "Explain write-behind — when is it appropriate and what's the risk?",
+    a: "Write-behind: write to cache first, async batch flush to DB (Twitter/X like counts in Redis, flush to Cassandra every 500ms). Appropriate for high write throughput where exact DB sync can lag (counters, analytics, IoT). Risks: data loss if cache crashes before flush, complex recovery, temporary inconsistency between cache and DB. Mitigate with replication, durable queues, and idempotent batch writes.",
+  },
+  {
+    q: "How would you design multi-layer caching for a read-heavy API?",
+    a: "Fan out: CDN (static, 24h TTL) → API Gateway → L1 in-process cache (100ms, per pod) → L2 Redis cluster (5min TTL, LRU eviction, maxmemory at 80%) → DB read replicas. Each layer has its own TTL and invalidation scope. On write: invalidate L2 key + publish event for other pods' L1. Prevent thundering herd with request coalescing or soft TTL + background refresh on hot keys.",
+  },
+];
+
+const WHITEBOARD = {
+  scenario: "Design caching for an e-commerce product catalog — 10M products, 100k reads/sec, 500 price updates/day.",
+  draw: [
+    "Client / Browser",
+    "CDN Edge (static assets + cacheable GET responses)",
+    "Load Balancer → App Server pool",
+    "L1: In-process cache (Caffeine/Guava, ~100ms TTL)",
+    "L2: Redis Cluster (product keys, 5min TTL, LRU eviction)",
+    "PostgreSQL read replicas (source of truth on miss)",
+    "Kafka: price-update events → invalidate Redis + bust CDN",
+  ],
+  followUps: [
+    "What happens during a cache miss storm on a viral product?",
+    "How do you prevent thundering herd on hot keys?",
+    "Redis cluster goes down — what's your fallback?",
+    "How do you size Redis memory and choose eviction policy?",
+  ],
+};
 
 const PATTERN_META = {
   "cache-aside": {
@@ -714,6 +766,43 @@ flowchart TD
     <div class="callout warn">Always set maxmemory + eviction policy. Unbounded cache = OOM crash.</div>`;
 }
 
+function renderInterview() {
+  const openSet = new Set(state.openQuestions || []);
+  return `
+    <p>Practice like a real loop. Click each question to reveal a model answer, then do the whiteboard exercise.</p>
+    <h2>5 Interview Questions</h2>
+    ${INTERVIEW_QUESTIONS.map((item, i) => `
+      <div class="card interview-q${openSet.has(i) ? ' open' : ''}" data-q="${i}">
+        <div class="card-title">Q${i + 1}: ${item.q}</div>
+        <div class="answer${openSet.has(i) ? '' : ' hidden'}">${item.a}</div>
+      </div>
+    `).join("")}
+    <h2>Whiteboard Prompt</h2>
+    <div class="card">
+      <div class="card-title">Scenario</div>
+      <p style="color:var(--text)">${WHITEBOARD.scenario}</p>
+      <h3>Draw these components and label data flow</h3>
+      <ul class="whiteboard-list">
+        ${WHITEBOARD.draw.map(d => `<li>${d}</li>`).join("")}
+      </ul>
+      <div class="mermaid">
+flowchart TD
+    C[Client] --> CDN[CDN Edge]
+    C --> LB[Load Balancer]
+    LB --> APP[App Server]
+    APP --> L1[L1 In-Process Cache]
+    L1 -->|miss| R[Redis Cluster]
+    R -->|miss| DB[(PostgreSQL Replicas)]
+    W[Price Update Service] --> K[Kafka Invalidation]
+    K --> R
+    K --> CDN
+      </div>
+      <h3>Follow-up probes (prepare answers)</h3>
+      <ul>${WHITEBOARD.followUps.map(f => `<li>${f}</li>`).join("")}</ul>
+    </div>
+    <div class="callout success">Tip: Start with requirements (read/write ratio, staleness budget), then pick pattern → invalidation → layers. Name trade-offs unprompted.</div>`;
+}
+
 function bindEvents() {
   document.querySelectorAll("#mainTabs .tab").forEach(t => {
     t.onclick = () => { state.tab = t.dataset.id; save(); };
@@ -753,6 +842,16 @@ function bindEvents() {
   document.querySelectorAll("[data-size]").forEach(b => {
     b.onclick = () => { state.dataSize = b.dataset.size; save(); };
   });
+
+  document.querySelectorAll(".interview-q").forEach(card => {
+    card.onclick = () => {
+      const i = +card.dataset.q;
+      const open = new Set(state.openQuestions || []);
+      if (open.has(i)) open.delete(i); else open.add(i);
+      state.openQuestions = [...open];
+      save();
+    };
+  });
 }
 
 async function renderMermaid() {
@@ -780,6 +879,7 @@ function render() {
     invalidation: renderInvalidation,
     staleness: renderStaleness,
     strategy: renderStrategy,
+    interview: renderInterview,
   };
   document.getElementById("content").innerHTML = renderers[state.tab]();
   bindEvents();
