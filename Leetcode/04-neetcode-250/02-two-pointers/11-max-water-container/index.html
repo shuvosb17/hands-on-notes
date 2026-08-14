@@ -16,7 +16,7 @@
     body {
       font-family: "Segoe UI", system-ui, sans-serif;
       background: var(--bg); color: var(--text); line-height: 1.55;
-      padding: 20px 16px 48px; max-width: 960px; margin: 0 auto;
+      padding: 16px 16px 48px; max-width: 1280px; margin: 0 auto;
     }
     h1 { font-size: 1.4rem; margin-bottom: 4px; }
     h2 { font-size: 1.05rem; margin: 22px 0 8px; }
@@ -42,16 +42,44 @@
     .callout { background: var(--accent-dim); border-left: 3px solid var(--accent); padding: 10px 12px; border-radius: 0 var(--radius) var(--radius) 0; margin: 12px 0; font-size: 0.86rem; }
     .callout.warn { background: #3a321a; border-color: var(--warn); }
     .callout.success { background: #1a3a32; border-color: var(--success); }
+    .lab-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+      gap: 14px;
+      align-items: start;
+      margin: 12px 0 20px;
+    }
+    .lab-viz { min-width: 0; }
+    .lab-code {
+      position: sticky;
+      top: 12px;
+      max-height: calc(100vh - 24px);
+      overflow: auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+    }
+    .lab-code h2 { margin: 0 0 8px; font-size: 0.92rem; }
+    .lab-code .codeblk { margin: 0; border: none; background: #1a1a1a; }
+    .frame-mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; }
+    .frame-mini .stat { padding: 8px 10px; }
+    .frame-mini .stat-value { font-size: 0.92rem; }
     .stage {
       background: #1a1a1a; border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 12px 12px 8px; margin: 12px 0;
+      padding: 10px 10px 6px; margin: 0;
     }
-    svg { display: block; width: 100%; height: auto; }
+    svg { display: block; width: 100%; height: auto; max-height: 280px; }
     .scrub { width: 100%; accent-color: var(--accent); margin: 8px 0 4px; }
     .caption { font-size: 0.72rem; color: var(--muted); }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    @media (max-width: 720px) {
-      .stats, .grid-2 { grid-template-columns: 1fr; }
+    @media (max-width: 900px) {
+      .lab-shell { grid-template-columns: 1fr; }
+      .lab-code { position: static; max-height: none; }
+      .stats, .grid-2, .frame-mini { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 520px) {
+      .stats, .grid-2, .frame-mini { grid-template-columns: 1fr; }
     }
     .codeblk { font-family: var(--mono); background: #1a1a1a; border: 1px solid var(--border); border-radius: var(--radius); overflow-x: auto; font-size: 0.75rem; margin: 8px 0 12px; }
     .code-line { padding: 3px 10px; color: var(--muted); white-space: pre; border-left: 3px solid transparent; }
@@ -105,19 +133,17 @@
     Area is <code>min(height[l], height[r]) * (r − l)</code>. Record it, then move the shorter wall — width always shrinks, so the short wall cannot beat that area.
   </div>
 
-  <div class="stage">
-    <svg id="viz" viewBox="0 0 900 320" role="img" aria-label="Walls and water container"></svg>
-    <input class="scrub" id="scrub" type="range" min="0" max="1" value="0" />
-    <p class="caption" id="scrubCap"></p>
-  </div>
-
-  <div class="grid-2">
-    <div>
-      <h2>This frame</h2>
-      <div id="frameStats"></div>
+  <div class="lab-shell">
+    <div class="lab-viz">
+      <div class="stage">
+        <svg id="viz" viewBox="0 0 900 320" role="img" aria-label="Walls and water container"></svg>
+        <input class="scrub" id="scrub" type="range" min="0" max="1" value="0" />
+        <p class="caption" id="scrubCap"></p>
+      </div>
+      <div class="frame-mini" id="frameStats"></div>
       <div class="callout success" id="say"></div>
     </div>
-    <div>
+    <div class="lab-code">
       <h2>Your code — hot line is executing</h2>
       <div class="codeblk" id="code"></div>
     </div>
@@ -333,18 +359,18 @@ function draw() {
     <div class="stat"><div class="stat-label">Answer best</div><div class="stat-value ok">${frames[frames.length - 1].best}</div></div>`;
 
   document.getElementById("frameStats").innerHTML = `
-    <div class="stats" style="grid-template-columns:1fr 1fr">
       <div class="stat"><div class="stat-label">l / height[l]</div><div class="stat-value">${f.l} / ${H[f.l]}</div></div>
       <div class="stat"><div class="stat-label">r / height[r]</div><div class="stat-value">${f.r} / ${H[f.r]}</div></div>
       <div class="stat"><div class="stat-label">area this step</div><div class="stat-value">${f.area == null ? "—" : f.area}</div></div>
-      <div class="stat"><div class="stat-label">best so far</div><div class="stat-value ok">${f.best}</div></div>
-    </div>`;
+      <div class="stat"><div class="stat-label">best so far</div><div class="stat-value ok">${f.best}</div></div>`;
 
   document.getElementById("say").innerHTML = `<strong>${f.phase}.</strong> ${esc(f.say)}`;
 
   document.getElementById("code").innerHTML = CODE.map((row) =>
-    `<div class="code-line${row.n === f.line ? " hot" : ""}"><span class="ln">${row.n}</span>${esc(row.t)}</div>`
+    `<div class="code-line${row.n === f.line ? " hot" : ""}" data-ln="${row.n}"><span class="ln">${row.n}</span>${esc(row.t)}</div>`
   ).join("");
+  const hotLine = document.querySelector("#code .code-line.hot");
+  if (hotLine) hotLine.scrollIntoView({ block: "nearest", behavior: "smooth" });
 
   const scrub = document.getElementById("scrub");
   scrub.max = String(frames.length - 1);
