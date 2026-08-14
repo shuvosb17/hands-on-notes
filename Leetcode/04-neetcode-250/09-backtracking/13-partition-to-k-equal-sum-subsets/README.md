@@ -1,0 +1,5 @@
+# Partition to K Equal Sum Subsets
+
+https://leetcode.com/problems/partition-to-k-equal-sum-subsets/
+
+Notes: edit `index.html`. Images go in `assets/`.
