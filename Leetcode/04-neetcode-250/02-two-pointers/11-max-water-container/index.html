@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LC 11 — Container With Most Water · Solution Lab</title>
+  <style>
+    :root {
+      --bg: #1e1e1e; --surface: #252526; --border: #3c3c3c;
+      --text: #ccc; --muted: #858585; --accent: #3794ff;
+      --accent-dim: #1a3a5c; --success: #4ec9b0; --warn: #dcdcaa;
+      --danger: #f48771; --water: #2a6aa8; --radius: 8px;
+      --mono: Consolas, "Cascadia Mono", monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.55;
+      padding: 16px 16px 48px; max-width: 1280px; margin: 0 auto;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 4px; }
+    h2 { font-size: 1.05rem; margin: 22px 0 8px; }
+    h3 { font-size: 0.9rem; margin: 14px 0 6px; color: var(--muted); }
+    p, li { color: var(--muted); font-size: 0.88rem; margin-bottom: 8px; }
+    ul { padding-left: 18px; }
+    code { font-family: var(--mono); background: var(--surface); padding: 1px 6px; border-radius: 4px; color: var(--accent); font-size: 0.85em; }
+    .subtitle { font-size: 0.86rem; color: var(--muted); margin-bottom: 14px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+    button, .key {
+      padding: 7px 12px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text); cursor: pointer; font-size: 0.8rem;
+    }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-ghost.active { background: var(--accent-dim); border-color: var(--accent); }
+    .key { padding: 2px 7px; font-family: var(--mono); font-size: 0.72rem; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
+    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+    .stat-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .stat-value { font-size: 1.05rem; font-weight: 600; margin-top: 4px; color: var(--text); }
+    .stat-value.ok { color: var(--success); }
+    .callout { background: var(--accent-dim); border-left: 3px solid var(--accent); padding: 10px 12px; border-radius: 0 var(--radius) var(--radius) 0; margin: 12px 0; font-size: 0.86rem; }
+    .callout.warn { background: #3a321a; border-color: var(--warn); }
+    .callout.success { background: #1a3a32; border-color: var(--success); }
+    .lab-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+      gap: 14px;
+      align-items: start;
+      margin: 12px 0 20px;
+    }
+    .lab-viz { min-width: 0; }
+    .lab-code {
+      position: sticky;
+      top: 12px;
+      max-height: calc(100vh - 24px);
+      overflow: auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+    }
+    .lab-code h2 { margin: 0 0 8px; font-size: 0.92rem; }
+    .lab-code .codeblk { margin: 0; border: none; background: #1a1a1a; }
+    .frame-mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; }
+    .frame-mini .stat { padding: 8px 10px; }
+    .frame-mini .stat-value { font-size: 0.92rem; }
+    .stage {
+      background: #1a1a1a; border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 10px 10px 6px; margin: 0;
+    }
+    svg { display: block; width: 100%; height: auto; max-height: 280px; }
+    .scrub { width: 100%; accent-color: var(--accent); margin: 8px 0 4px; }
+    .caption { font-size: 0.72rem; color: var(--muted); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 900px) {
+      .lab-shell { grid-template-columns: 1fr; }
+      .lab-code { position: static; max-height: none; }
+      .stats, .grid-2, .frame-mini { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 520px) {
+      .stats, .grid-2, .frame-mini { grid-template-columns: 1fr; }
+    }
+    .codeblk { font-family: var(--mono); background: #1a1a1a; border: 1px solid var(--border); border-radius: var(--radius); overflow-x: auto; font-size: 0.75rem; margin: 8px 0 12px; }
+    .code-line { padding: 3px 10px; color: var(--muted); white-space: pre; border-left: 3px solid transparent; }
+    .code-line.hot { background: #2a2a2a; color: var(--text); border-left-color: var(--accent); }
+    .ln { display: inline-block; width: 28px; color: #5a5a5a; user-select: none; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin: 10px 0; }
+    th, td { border: 1px solid var(--border); padding: 7px 8px; text-align: left; vertical-align: top; }
+    th { background: #2d2d2d; }
+    tr.cur td { background: var(--accent-dim); }
+    tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+    tr.cur:nth-child(even) td { background: var(--accent-dim); }
+    input[type="text"] {
+      width: 100%; background: var(--surface); color: var(--text);
+      border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-family: var(--mono); font-size: 0.82rem;
+    }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 10px; cursor: pointer; }
+    .card:hover, .card.open { border-color: var(--accent); }
+    .card-title { font-weight: 600; font-size: 0.88rem; color: var(--text); }
+    .card-title::after { content: " ▾"; color: var(--muted); }
+    .card.open .card-title::after { content: " ▴"; }
+    .answer { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 0.86rem; color: var(--text); }
+    .hidden { display: none !important; }
+    .footer { margin-top: 28px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 0.76rem; color: var(--muted); }
+    .say { color: var(--text); font-size: 0.86rem; }
+    .flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0 14px; }
+    .chip { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 6px 10px; font-size: 0.75rem; }
+    .chip.hot { border-color: var(--accent); color: var(--accent); }
+    .arrow { color: var(--muted); font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+  <h1>LC 11 — Container With Most Water</h1>
+  <p class="subtitle">
+    Animated walkthrough of your two-pointer solution · deploy this folder to GitHub Pages / Cloudflare Pages
+    · pattern from <a href="https://hands-on-notes.pages.dev/Project/" style="color:#3794ff">Shuvo module guide</a>
+  </p>
+
+  <div class="toolbar" id="keys">
+    <button class="btn-primary" data-act="auto" id="btnAuto">Auto cycle <span class="key">A</span></button>
+    <button data-act="step">Step <span class="key">S</span></button>
+    <button data-act="back">Back <span class="key">B</span></button>
+    <button data-act="reset">Reset <span class="key">R</span></button>
+    <button data-act="ex" data-v="1" class="btn-ghost active" id="ex1">Example 1 <span class="key">1</span></button>
+    <button data-act="ex" data-v="2" class="btn-ghost" id="ex2">Example 2 <span class="key">2</span></button>
+  </div>
+
+  <div class="stats" id="heroStats"></div>
+
+  <div class="callout" id="memorize">
+    <strong>If you only memorise one thing.</strong>
+    Area is <code>min(height[l], height[r]) * (r − l)</code>. Record it, then move the shorter wall — width always shrinks, so the short wall cannot beat that area.
+  </div>
+
+  <div class="lab-shell">
+    <div class="lab-viz">
+      <div class="stage">
+        <svg id="viz" viewBox="0 0 900 320" role="img" aria-label="Walls and water container"></svg>
+        <input class="scrub" id="scrub" type="range" min="0" max="1" value="0" />
+        <p class="caption" id="scrubCap"></p>
+      </div>
+      <div class="frame-mini" id="frameStats"></div>
+      <div class="callout success" id="say"></div>
+    </div>
+    <div class="lab-code">
+      <h2>Your code — hot line is executing</h2>
+      <div class="codeblk" id="code"></div>
+    </div>
+  </div>
+
+  <h2>Custom input</h2>
+  <p>Comma-separated heights, 2–16 values (kept small so the bars stay readable).</p>
+  <div class="toolbar">
+    <input type="text" id="custom" value="1,8,6,2,5,4,8,3,7" />
+    <button class="btn-primary" data-act="load">Load</button>
+  </div>
+
+  <h2>Where the value travels each iteration</h2>
+  <div class="flow" id="flow"></div>
+
+  <h2>Line-by-line, in the order you should present it</h2>
+  <p>Open each row. Left = what the machine does. Right = what you say out loud.</p>
+  <table>
+    <thead><tr><th>Line</th><th>Do this</th><th>Say this</th></tr></thead>
+    <tbody>
+      <tr><td>4–6</td><td>Open <code>l</code>, <code>r</code>, <code>best</code></td><td class="say">Widest container first. best starts at 0 because area cannot be negative.</td></tr>
+      <tr><td>8</td><td>Loop while <code>l &lt; r</code></td><td class="say">Need two distinct walls. When they meet, every discarded wall is proven useless.</td></tr>
+      <tr><td>9</td><td><code>h = min(height[l], height[r])</code></td><td class="say">Water cannot slant. Height is capped by the shorter wall.</td></tr>
+      <tr><td>10</td><td><code>best = max(best, h * (r - l))</code></td><td class="say">Record before moving. Width is r minus l, not r minus l plus one.</td></tr>
+      <tr><td>11–15</td><td>Move the shorter wall</td><td class="say">Width will drop. Only a taller replacement for the short wall can improve area. Equal heights: l++ still makes progress.</td></tr>
+      <tr><td>17</td><td><code>return best</code></td><td class="say">O(n) visits, O(1) extra memory. n can be 1e5 so n² is illegal.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Seven-step demo, in order</h2>
+  <table>
+    <thead><tr><th>#</th><th>Do this</th><th>Say this</th><th>On example 1</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Press <span class="key">1</span> then <span class="key">R</span></td><td class="say">l=0, r=8, walls 1 and 7.</td><td>best=0</td></tr>
+      <tr><td>2</td><td>Step once</td><td class="say">min(1,7)*8=8. Short wall is 1 — drop l.</td><td>best=8</td></tr>
+      <tr><td>3</td><td>Step again</td><td class="say">min(8,7)*7=49. This is the answer. Short wall is 7 — drop r.</td><td>best=49</td></tr>
+      <tr><td>4</td><td>Keep stepping</td><td class="say">Remaining areas 18, 40, 24… all lose to 49. The loop is only proving optimality.</td><td>best stays 49</td></tr>
+      <tr><td>5</td><td>Press <span class="key">A</span></td><td class="say">Auto cycle — same as scrubbing the slider.</td><td>full run</td></tr>
+      <tr><td>6</td><td>Press <span class="key">2</span></td><td class="say">n=2 is the smallest legal input. One iteration, area 1.</td><td>[1,1]</td></tr>
+      <tr><td>7</td><td>Open the <code>if</code></td><td class="say">Never move the taller wall first. That would throw away the only wall that can still raise min height.</td><td>line 11</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Full dry-run table</h2>
+  <div id="tableWrap"></div>
+
+  <h2>Hard questions only</h2>
+  <div id="qs"></div>
+
+  <h2>Opening line — memorise word for word</h2>
+  <div class="callout warn">
+    “I start at both ends so the width is maximum. Each step I compute min of the two heights times width, keep a running max, then move the shorter pointer because shrinking width can only win if the new height is strictly taller. That deletes a whole family of pairs, so the scan is linear.”
+  </div>
+
+  <p class="footer">
+    Source solution: <code>ContainerWithMost_water.cpp</code> · LeetCode 11 ·
+    Cloudflare Pages: output directory <code>LC-11-Container-With-Most-Water</code>, empty build command ·
+    or GitHub Pages: set this folder as the site root (file must stay named <code>index.html</code>).
+    Keyboard: A auto · S step · B back · R reset · 1 / 2 examples.
+  </p>
+
+<script>
+const CODE = [
+  { n: 3, t: "    int maxArea(vector<int>& height) {" },
+  { n: 4, t: "        int l = 0;" },
+  { n: 5, t: "        int r = (int)height.size() - 1;" },
+  { n: 6, t: "        int best = 0;" },
+  { n: 7, t: "" },
+  { n: 8, t: "        while (l < r) {" },
+  { n: 9, t: "            int h = min(height[l], height[r]);" },
+  { n:10, t: "            best = max(best, h * (r - l));" },
+  { n:11, t: "            if (height[l] <= height[r]) {" },
+  { n:12, t: "                l++;" },
+  { n:13, t: "            } else {" },
+  { n:14, t: "                r--;" },
+  { n:15, t: "            }" },
+  { n:16, t: "        }" },
+  { n:17, t: "        return best;" },
+  { n:18, t: "    }" },
+];
+
+const QUESTIONS = [
+  { q: "Why not try every pair? n is 1e5.", a: "n² is 10¹⁰ operations — TLE. Two pointers visit each index at most once: l only increases, r only decreases, so at most n−1 iterations. Time O(n), extra space O(1)." },
+  { q: "Why is moving the shorter wall safe?", a: "Area = min(hl, hr) × width. After this pair, width only gets smaller. If you keep the short wall, min stays ≤ that short height, so area cannot beat the one you just recorded. The short index is useless with every remaining partner. Drop it." },
+  { q: "Does the array need to be sorted?", a: "No. Unlike Two Sum II, the invariant is about min-height × width, not about monotonic sums. Example 1 is unsorted and the algorithm is still correct." },
+  { q: "Width: r−l or r−l+1?", a: "r−l. The i-th line sits at x=i. Distance between index 1 and 8 is 7, which is how example 1 gets 7×7=49." },
+  { q: "What if heights are equal?", a: "Either pointer may move. This code uses <= so l++. If both are equal and both are the global max, remaining width is smaller anyway. Using < vs <= does not change correctness as long as you always move at least one pointer." },
+];
+
+const EX = {
+  1: [1, 8, 6, 2, 5, 4, 8, 3, 7],
+  2: [1, 1],
+};
+
+function buildFrames(height) {
+  const frames = [];
+  let l = 0, r = height.length - 1, best = 0;
+  frames.push({
+    l, r, best, h: null, area: null, improved: false, move: null,
+    line: 6, phase: "init",
+    say: "Initialize. Widest span. best = 0. Loop has not computed an area yet.",
+  });
+  while (l < r) {
+    const h = Math.min(height[l], height[r]);
+    const area = h * (r - l);
+    frames.push({
+      l, r, best, h, area, improved: false, move: null,
+      line: 9, phase: "min",
+      say: `h = min(${height[l]}, ${height[r]}) = ${h}. Water cannot slant, so this is the water line.`,
+    });
+    const improved = area > best;
+    best = Math.max(best, area);
+    frames.push({
+      l, r, best, h, area, improved, move: null,
+      line: 10, phase: "best",
+      say: improved
+        ? `area = ${h} × ${r - l} = ${area}. New best. Record before you move.`
+        : `area = ${h} × ${r - l} = ${area}. Loses to best ${best}. Still must record-then-move.`,
+    });
+    const moveL = height[l] <= height[r];
+    frames.push({
+      l, r, best, h, area, improved: false, move: moveL ? "L" : "R",
+      line: moveL ? 12 : 14, phase: "move",
+      say: moveL
+        ? `height[l]=${height[l]} ≤ height[r]=${height[r]} → l++. Drop the shorter (or equal) left wall.`
+        : `height[l]=${height[l]} > height[r]=${height[r]} → r--. Drop the shorter right wall.`,
+    });
+    if (moveL) l++; else r--;
+  }
+  frames.push({
+    l, r, best, h: null, area: null, improved: false, move: null,
+    line: 17, phase: "done",
+    say: `l == r. Loop ends. Return best = ${best}.`,
+  });
+  return frames;
+}
+
+const KEY = "lc11-water-lab-v1";
+let H = [...EX[1]];
+let frames = buildFrames(H);
+let i = 0;
+let timer = null;
+let example = "1";
+
+try {
+  const saved = JSON.parse(localStorage.getItem(KEY) || "null");
+  if (saved && Array.isArray(saved.H) && saved.H.length >= 2) {
+    H = saved.H; example = saved.example || "1"; i = saved.i || 0;
+    frames = buildFrames(H);
+    i = Math.min(i, frames.length - 1);
+  }
+} catch (e) {}
+
+function persist() {
+  localStorage.setItem(KEY, JSON.stringify({ H, i, example }));
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+}
+
+function draw() {
+  const f = frames[i];
+  const n = H.length;
+  const maxH = Math.max(...H, 1);
+  const W = 900, Ht = 320, padL = 48, padR = 24, padT = 28, padB = 48;
+  const innerW = W - padL - padR;
+  const innerH = Ht - padT - padB;
+  const gap = 8;
+  const bw = (innerW - gap * (n - 1)) / n;
+  const y0 = padT + innerH;
+  const xAt = (idx) => padL + idx * (bw + gap);
+  const hPx = (h) => (h / maxH) * innerH;
+
+  const waterOn = f.h != null;
+  const xL = xAt(f.l);
+  const xR = xAt(f.r);
+  const waterY = y0 - hPx(f.h || 0);
+  const waterX = xL + bw;
+  const waterW = Math.max(0, xR - xL - bw);
+
+  let bars = "";
+  for (let k = 0; k < n; k++) {
+    const x = xAt(k);
+    const h = hPx(H[k]);
+    const outside = k < f.l || k > f.r;
+    const isL = k === f.l;
+    const isR = k === f.r;
+    const fill = isL || isR ? "#3794ff" : outside ? "#2a2a2a" : "#3c3c3c";
+    const op = outside ? 0.4 : 1;
+    bars += `<rect x="${x}" y="${y0 - h}" width="${bw}" height="${h}" fill="${fill}" opacity="${op}"/>`;
+    bars += `<text x="${x + bw / 2}" y="${y0 + 16}" text-anchor="middle" fill="#858585" font-size="12" font-family="Segoe UI">${k}</text>`;
+    bars += `<text x="${x + bw / 2}" y="${y0 - h - 6}" text-anchor="middle" fill="${isL || isR ? "#3794ff" : "#858585"}" font-size="11" font-family="Consolas">${H[k]}</text>`;
+    if (isL) bars += `<text x="${x + bw / 2}" y="${Ht - 8}" text-anchor="middle" fill="#3794ff" font-size="13" font-weight="600">L</text>`;
+    if (isR && f.r !== f.l) bars += `<text x="${x + bw / 2}" y="${Ht - 8}" text-anchor="middle" fill="#3794ff" font-size="13" font-weight="600">R</text>`;
+  }
+
+  const water = waterOn && waterW > 0
+    ? `<rect x="${waterX}" y="${waterY}" width="${waterW}" height="${hPx(f.h)}" fill="#2a6aa8" opacity="0.55"/>
+       <text x="${waterX + waterW / 2}" y="${waterY + Math.max(16, hPx(f.h) / 2 + 4)}" text-anchor="middle" fill="#dbeafe" font-size="14" font-family="Consolas">${f.area}</text>`
+    : "";
+
+  document.getElementById("viz").innerHTML =
+    `<rect width="${W}" height="${Ht}" fill="#1a1a1a"/>` +
+    water + bars +
+    `<line x1="${padL}" y1="${y0}" x2="${W - padR}" y2="${y0}" stroke="#3c3c3c"/>` +
+    `<text x="${padL}" y="16" fill="#858585" font-size="11">Y: wall height (units) · X: index · water label = area this step</text>`;
+
+  document.getElementById("heroStats").innerHTML = `
+    <div class="stat"><div class="stat-label">Time</div><div class="stat-value ok">O(n)</div></div>
+    <div class="stat"><div class="stat-label">Extra space</div><div class="stat-value">O(1)</div></div>
+    <div class="stat"><div class="stat-label">Frames in this run</div><div class="stat-value">${frames.length}</div></div>
+    <div class="stat"><div class="stat-label">Answer best</div><div class="stat-value ok">${frames[frames.length - 1].best}</div></div>`;
+
+  document.getElementById("frameStats").innerHTML = `
+      <div class="stat"><div class="stat-label">l / height[l]</div><div class="stat-value">${f.l} / ${H[f.l]}</div></div>
+      <div class="stat"><div class="stat-label">r / height[r]</div><div class="stat-value">${f.r} / ${H[f.r]}</div></div>
+      <div class="stat"><div class="stat-label">area this step</div><div class="stat-value">${f.area == null ? "—" : f.area}</div></div>
+      <div class="stat"><div class="stat-label">best so far</div><div class="stat-value ok">${f.best}</div></div>`;
+
+  document.getElementById("say").innerHTML = `<strong>${f.phase}.</strong> ${esc(f.say)}`;
+
+  document.getElementById("code").innerHTML = CODE.map((row) =>
+    `<div class="code-line${row.n === f.line ? " hot" : ""}" data-ln="${row.n}"><span class="ln">${row.n}</span>${esc(row.t)}</div>`
+  ).join("");
+  const hotLine = document.querySelector("#code .code-line.hot");
+  if (hotLine) hotLine.scrollIntoView({ block: "nearest", behavior: "smooth" });
+
+  const scrub = document.getElementById("scrub");
+  scrub.max = String(frames.length - 1);
+  scrub.value = String(i);
+  document.getElementById("scrubCap").textContent =
+    `Frame ${i + 1} / ${frames.length} · drag to scrub like the daylight slider on the reference page · source: maxArea() while-loop`;
+
+  document.getElementById("flow").innerHTML = [
+    ["l, r", f.phase === "init"],
+    ["min height", f.phase === "min"],
+    ["area = h × width", f.phase === "best"],
+    ["best = max(...)", f.phase === "best"],
+    ["move shorter", f.phase === "move"],
+    ["return", f.phase === "done"],
+  ].map(([label, hot], idx, arr) => {
+    const chip = `<span class="chip${hot ? " hot" : ""}">${label}</span>`;
+    const ar = idx < arr.length - 1 ? `<span class="arrow">→</span>` : "";
+    return chip + ar;
+  }).join("");
+
+  const rows = frames.map((fr, idx) =>
+    `<tr class="${idx === i ? "cur" : ""}"><td>${idx + 1}</td><td>${fr.phase}</td><td>${fr.l}</td><td>${fr.r}</td><td>${fr.h == null ? "—" : fr.h}</td><td>${fr.area == null ? "—" : fr.area}</td><td>${fr.best}</td><td>${fr.move || "—"}</td></tr>`
+  ).join("");
+  document.getElementById("tableWrap").innerHTML =
+    `<table><thead><tr><th>#</th><th>Phase</th><th>l</th><th>r</th><th>h</th><th>area</th><th>best</th><th>move</th></tr></thead><tbody>${rows}</tbody></table>
+     <p class="caption">Generated by the same rules as ContainerWithMost_water.cpp. Example 1 peak area is 49 at l=1, r=8.</p>`;
+
+  document.getElementById("ex1").classList.toggle("active", example === "1");
+  document.getElementById("ex2").classList.toggle("active", example === "2");
+  document.getElementById("btnAuto").textContent = timer ? "Pause  A" : "Auto cycle  A";
+  persist();
+}
+
+function stopAuto() {
+  if (timer) { clearInterval(timer); timer = null; }
+}
+
+function play() {
+  if (timer) { stopAuto(); draw(); return; }
+  timer = setInterval(() => {
+    if (i >= frames.length - 1) { i = 0; }
+    else i += 1;
+    draw();
+  }, 850);
+  draw();
+}
+
+function loadHeights(arr, ex) {
+  stopAuto();
+  H = arr.map(Number).filter((x) => Number.isFinite(x));
+  if (H.length < 2) H = [...EX[1]];
+  if (H.length > 16) H = H.slice(0, 16);
+  frames = buildFrames(H);
+  i = 0;
+  example = ex;
+  draw();
+}
+
+document.getElementById("qs").innerHTML = QUESTIONS.map((item, idx) =>
+  `<div class="card" data-q="${idx}"><div class="card-title">${esc(item.q)}</div><div class="answer hidden">${esc(item.a)}</div></div>`
+).join("");
+
+document.body.addEventListener("click", (e) => {
+  const q = e.target.closest("[data-q]");
+  if (q) {
+    q.classList.toggle("open");
+    q.querySelector(".answer").classList.toggle("hidden");
+    return;
+  }
+  const act = e.target.closest("[data-act]");
+  if (!act) return;
+  const a = act.dataset.act;
+  if (a === "auto") play();
+  if (a === "step") { stopAuto(); if (i < frames.length - 1) i++; draw(); }
+  if (a === "back") { stopAuto(); if (i > 0) i--; draw(); }
+  if (a === "reset") { stopAuto(); i = 0; draw(); }
+  if (a === "ex") loadHeights(EX[act.dataset.v], act.dataset.v);
+  if (a === "load") {
+    const arr = document.getElementById("custom").value.split(/[,\s]+/).filter(Boolean);
+    loadHeights(arr, "c");
+  }
+});
+
+document.getElementById("scrub").addEventListener("input", (e) => {
+  stopAuto();
+  i = Number(e.target.value);
+  draw();
+});
+
+document.addEventListener("keydown", (e) => {
+  if (["INPUT", "TEXTAREA"].includes(e.target.tagName)) return;
+  const k = e.key.toLowerCase();
+  if (k === "a") play();
+  if (k === "s") { stopAuto(); if (i < frames.length - 1) i++; draw(); }
+  if (k === "b") { stopAuto(); if (i > 0) i--; draw(); }
+  if (k === "r") { stopAuto(); i = 0; draw(); }
+  if (k === "1") loadHeights(EX[1], "1");
+  if (k === "2") loadHeights(EX[2], "2");
+});
+
+draw();
+</script>
+</body>
+</html>

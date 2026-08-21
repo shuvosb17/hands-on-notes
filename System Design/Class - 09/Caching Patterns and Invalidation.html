@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Class 09 — Caching Patterns & Invalidation</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #1e1e1e; --surface: #252526; --border: #3c3c3c;
+      --text: #ccc; --muted: #858585; --accent: #3794ff;
+      --accent-dim: #1a3a5c; --success: #4ec9b0; --warn: #dcdcaa;
+      --danger: #f48771; --radius: 8px; --mono: Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.6;
+      padding: 20px 16px 40px; max-width: 920px; margin: 0 auto;
+    }
+    h1 { font-size: 1.45rem; margin-bottom: 6px; }
+    h2 { font-size: 1.05rem; margin: 18px 0 8px; color: var(--text); }
+    h3 { font-size: 0.92rem; margin: 14px 0 6px; color: var(--muted); }
+    p, li { color: var(--muted); font-size: 0.88rem; margin-bottom: 8px; }
+    ul { padding-left: 18px; margin-bottom: 10px; }
+    code { font-family: var(--mono); background: var(--surface); padding: 2px 6px; border-radius: 4px; color: var(--accent); font-size: 0.85em; }
+    .subtitle { font-size: 0.86rem; margin-bottom: 14px; }
+    .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 14px 0; }
+    .tab { padding: 6px 12px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--text); cursor: pointer; font-size: 0.78rem; }
+    .tab.active { background: var(--accent-dim); border-color: var(--accent); color: #fff; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 14px; }
+    .card-title { font-weight: 600; font-size: 0.92rem; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .callout { background: var(--accent-dim); border-left: 3px solid var(--accent); padding: 10px 12px; border-radius: 0 var(--radius) var(--radius) 0; margin-bottom: 14px; font-size: 0.86rem; }
+    .callout.success { background: #1a3a32; border-color: var(--success); }
+    .callout.warn { background: #3a321a; border-color: var(--warn); }
+    .callout.danger { background: #3a2222; border-color: var(--danger); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin: 10px 0; }
+    th, td { border: 1px solid var(--border); padding: 7px 9px; text-align: left; vertical-align: top; }
+    th { background: #2d2d2d; }
+    tr.striped:nth-child(even) td { background: rgba(255,255,255,0.02); }
+    button { padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.82rem; margin: 3px 4px 3px 0; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost.active { background: var(--accent-dim); border-color: var(--accent); color: var(--text); }
+    select { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; font-size: 0.82rem; }
+    label.check { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-size: 0.86rem; cursor: pointer; }
+    label.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+    .hidden { display: none !important; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    @media (max-width: 700px) {
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    }
+    .stat { background: #2a2a2a; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+    .stat-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .stat-value { font-size: 0.95rem; font-weight: 600; margin-top: 4px; color: var(--text); }
+    .stat-value.ok { color: var(--success); }
+    .stat-value.warn { color: var(--warn); }
+    .stat-value.bad { color: var(--danger); }
+    .pill { display: inline-block; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent); }
+    .flow-wrap { overflow-x: auto; margin: 12px 0; }
+    .flow-svg { display: block; min-width: 100%; }
+    .mermaid { background: #1a1a1a; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin: 10px 0; overflow-x: auto; }
+    .bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 140px; margin: 12px 0; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+    .bar-stack { width: 100%; max-width: 48px; display: flex; flex-direction: column-reverse; gap: 2px; }
+    .bar-seg { width: 100%; border-radius: 3px 3px 0 0; min-height: 2px; transition: height 0.3s; }
+    .bar-label { font-size: 0.65rem; color: var(--muted); text-align: center; word-break: break-word; }
+    .bar-val { font-size: 0.65rem; color: var(--text); }
+    .line-chart { position: relative; height: 150px; margin: 12px 0; border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .line-chart svg { width: 100%; height: 100%; }
+    .timeline-bar { font-family: var(--mono); font-size: 0.75rem; line-height: 1.8; background: #1a1a1a; padding: 10px; border-radius: var(--radius); border: 1px solid var(--border); }
+    .footer { margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--border); font-size: 0.78rem; color: var(--muted); }
+    blockquote { border-left: 3px solid var(--warn); padding: 8px 12px; margin: 10px 0; font-style: italic; color: var(--muted); font-size: 0.86rem; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .interview-q { cursor: pointer; transition: border-color 0.2s; }
+    .interview-q:hover { border-color: var(--accent); }
+    .interview-q.open { border-color: var(--accent); }
+    .interview-q .card-title::after { content: " ▾"; color: var(--muted); font-size: 0.8rem; }
+    .interview-q.open .card-title::after { content: " ▴"; }
+    .interview-q .answer { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 0.86rem; color: var(--text); line-height: 1.55; }
+    .whiteboard-list { list-style: none; padding: 0; margin: 8px 0; }
+    .whiteboard-list li { padding: 4px 0 4px 16px; position: relative; font-size: 0.86rem; color: var(--muted); }
+    .whiteboard-list li::before { content: "□"; position: absolute; left: 0; color: var(--accent); }
+  </style>
+</head>
+<body>
+  <h1>Class 09 — Caching Patterns & Invalidation</h1>
+  <p class="subtitle">Interactive architect notes · deploy-ready single file · patterns → invalidation → staleness → strategy</p>
+  <div class="tabs" id="mainTabs"></div>
+  <div id="content"></div>
+  <div class="footer">Next: Class 10 — Redis as a Building Block · State saved in localStorage</div>
+
+<script>
+mermaid.initialize({ startOnLoad: false, theme: "dark", securityLevel: "loose" });
+
+const KEY = "class09-caching-v1";
+const DEFAULT = {
+  tab: "overview",
+  pattern: "cache-aside",
+  patternStep: 0,
+  invalidation: "write-invalidate",
+  invScenario: "ecommerce",
+  ttl: 60,
+  writeRate: 10,
+  useEventInv: true,
+  readRatio: 95,
+  consistency: "eventual",
+  dataSize: "small",
+};
+
+let state = { ...DEFAULT, ...JSON.parse(localStorage.getItem(KEY) || "{}") };
+function save() { localStorage.setItem(KEY, JSON.stringify(state)); render(); }
+
+const TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "patterns", label: "Cache Patterns" },
+  { id: "invalidation", label: "Invalidation" },
+  { id: "staleness", label: "Staleness" },
+  { id: "strategy", label: "Strategy" },
+  { id: "interview", label: "Mock Interview" },
+];
+
+const INTERVIEW_QUESTIONS = [
+  {
+    q: "When would you pick cache-aside over write-through?",
+    a: "Cache-aside when reads dominate (95:5+) and eventual consistency is OK — e.g. Amazon product pages. The app loads cache on miss, so you only cache hot keys and cache failure doesn't block reads. Write-through is for data that must be consistent immediately after every write (sessions, bank balances). Trade-off: cache-aside has a miss penalty and app complexity; write-through adds write latency but zero stale-read window.",
+  },
+  {
+    q: "How do you handle cache invalidation in a multi-region setup?",
+    a: "Use event-driven invalidation: on write, publish to Kafka/PubSub and all regions delete or refresh the key. Shopify does this for inventory across 12 regions. Never rely on TTL alone for cross-region consistency — propagation is ms–seconds but bounded. Combine with write-invalidate on the origin and a short TTL as safety net. Versioning/tags help when one entity maps to many cached pages (CMS).",
+  },
+  {
+    q: "What's your staleness budget for a product page vs checkout inventory?",
+    a: "Product catalog: ~30 seconds acceptable — stale price briefly is annoying but rarely catastrophic; use write-invalidate on price change + 5min TTL safety net. Checkout inventory: zero staleness — overselling is a business/regulatory problem; skip cache on the reservation path or use write-through with immediate invalidation. Always define the budget in seconds before picking pattern or TTL.",
+  },
+  {
+    q: "Explain write-behind — when is it appropriate and what's the risk?",
+    a: "Write-behind: write to cache first, async batch flush to DB (Twitter/X like counts in Redis, flush to Cassandra every 500ms). Appropriate for high write throughput where exact DB sync can lag (counters, analytics, IoT). Risks: data loss if cache crashes before flush, complex recovery, temporary inconsistency between cache and DB. Mitigate with replication, durable queues, and idempotent batch writes.",
+  },
+  {
+    q: "How would you design multi-layer caching for a read-heavy API?",
+    a: "Fan out: CDN (static, 24h TTL) → API Gateway → L1 in-process cache (100ms, per pod) → L2 Redis cluster (5min TTL, LRU eviction, maxmemory at 80%) → DB read replicas. Each layer has its own TTL and invalidation scope. On write: invalidate L2 key + publish event for other pods' L1. Prevent thundering herd with request coalescing or soft TTL + background refresh on hot keys.",
+  },
+];
+
+const WHITEBOARD = {
+  scenario: "Design caching for an e-commerce product catalog — 10M products, 100k reads/sec, 500 price updates/day.",
+  draw: [
+    "Client / Browser",
+    "CDN Edge (static assets + cacheable GET responses)",
+    "Load Balancer → App Server pool",
+    "L1: In-process cache (Caffeine/Guava, ~100ms TTL)",
+    "L2: Redis Cluster (product keys, 5min TTL, LRU eviction)",
+    "PostgreSQL read replicas (source of truth on miss)",
+    "Kafka: price-update events → invalidate Redis + bust CDN",
+  ],
+  followUps: [
+    "What happens during a cache miss storm on a viral product?",
+    "How do you prevent thundering herd on hot keys?",
+    "Redis cluster goes down — what's your fallback?",
+    "How do you size Redis memory and choose eviction policy?",
+  ],
+};
+
+const PATTERN_META = {
+  "cache-aside": {
+    name: "Cache-Aside (Lazy Loading)",
+    short: "Cache-Aside",
+    tagline: "App owns the cache — read first, DB on miss, app writes cache",
+    realWorld: "Amazon product pages: app checks Redis, on miss loads PostgreSQL, stores result for 5 min.",
+    pros: ["Only hot keys cached", "Cache failure doesn't block reads", "Most common in production"],
+    cons: ["First request is slow (miss)", "Race on concurrent writes", "App handles cache logic"],
+    when: "Read-heavy APIs (90% of web services).",
+  },
+  "read-through": {
+    name: "Read-Through",
+    short: "Read-Through",
+    tagline: "Cache library loads from DB automatically on miss",
+    realWorld: "Hibernate second-level cache — developer only calls cache.get(key).",
+    pros: ["Simpler app code", "Consistent loading path", "Good for ORM layers"],
+    cons: ["Cache must know how to load DB", "Cold-start latency on miss", "Less flexible"],
+    when: "Cache SDK/ORM abstracts DB loading.",
+  },
+  "write-through": {
+    name: "Write-Through",
+    short: "Write-Through",
+    tagline: "Write goes to cache AND DB synchronously before ACK",
+    realWorld: "Login session: writes to Redis and Postgres synchronously — always consistent.",
+    pros: ["Cache always fresh after write", "No stale reads after update", "Predictable consistency"],
+    cons: ["Write latency = cache + DB", "Stores unread data", "Write amplification"],
+    when: "Sessions, auth tokens, config — strong consistency.",
+  },
+  "write-behind": {
+    name: "Write-Behind (Write-Back)",
+    short: "Write-Behind",
+    tagline: "Write to cache first, async flush to DB later",
+    realWorld: "Twitter/X like counts: INCR in Redis, batch-flush to Cassandra every 500ms.",
+    pros: ["Fastest writes", "Absorbs write spikes", "Batch DB writes = lower cost"],
+    cons: ["Data loss if cache crashes", "Complex recovery", "Temporary inconsistency"],
+    when: "Counters, analytics, IoT — slight DB delay OK.",
+  },
+};
+
+const PATTERN_FLOWS = {
+  "cache-aside": {
+    nodes: [
+      { id: "client", label: "Client", rank: 0 },
+      { id: "app", label: "App Server", rank: 1 },
+      { id: "cache", label: "Redis", rank: 2 },
+      { id: "db", label: "PostgreSQL", rank: 3 },
+    ],
+    edges: [
+      { from: "client", to: "app", label: "GET /product/42" },
+      { from: "app", to: "cache", label: "1. GET key" },
+      { from: "app", to: "db", label: "2. SELECT (miss)" },
+      { from: "app", to: "cache", label: "3. SET key" },
+      { from: "app", to: "client", label: "200 OK" },
+    ],
+    steps: [
+      "Client requests product #42 from catalog",
+      "App checks Redis — cache MISS",
+      "App queries PostgreSQL — ~45ms",
+      "App writes result to Redis (TTL=300s)",
+      "Response returned — first hit ~52ms total",
+    ],
+    highlights: [["client","app"], ["app","cache"], ["app","db"], ["app","cache"], ["client","app"]],
+  },
+  "read-through": {
+    nodes: [
+      { id: "app", label: "App (ORM)", rank: 0 },
+      { id: "cache", label: "Cache Library", rank: 1 },
+      { id: "db", label: "Database", rank: 2 },
+    ],
+    edges: [
+      { from: "app", to: "cache", label: "cache.get()" },
+      { from: "cache", to: "db", label: "auto-load on miss" },
+      { from: "cache", to: "app", label: "return value" },
+    ],
+    steps: [
+      "App calls cache.get('user:123') — one line",
+      "Cache checks store — MISS",
+      "Cache library queries DB automatically",
+      "Cache stores and returns to app",
+      "Next calls: HIT in ~2ms, no DB",
+    ],
+    highlights: [["app"], ["cache"], ["cache","db"], ["cache","app"], ["app","cache"]],
+  },
+  "write-through": {
+    nodes: [
+      { id: "app", label: "App", rank: 0 },
+      { id: "cache", label: "Session Cache", rank: 1 },
+      { id: "db", label: "Database", rank: 2 },
+    ],
+    edges: [
+      { from: "app", to: "cache", label: "1. write cache" },
+      { from: "cache", to: "db", label: "2. sync write" },
+      { from: "cache", to: "app", label: "ACK" },
+    ],
+    steps: [
+      "User logs in — session must be consistent",
+      "App writes session to Redis",
+      "Cache synchronously writes PostgreSQL",
+      "Both ACK — consistent in cache AND DB",
+      "Any read sees fresh session immediately",
+    ],
+    highlights: [["app"], ["app","cache"], ["cache","db"], ["cache","app"], ["app","cache","db"]],
+  },
+  "write-behind": {
+    nodes: [
+      { id: "app", label: "App", rank: 0 },
+      { id: "cache", label: "Redis Counter", rank: 1 },
+      { id: "db", label: "Cassandra", rank: 2 },
+    ],
+    edges: [
+      { from: "app", to: "cache", label: "INCR (1ms)" },
+      { from: "cache", to: "app", label: "ACK" },
+      { from: "cache", to: "db", label: "async batch flush" },
+    ],
+    steps: [
+      "User likes a post — must feel instant",
+      "App increments counter in Redis — 1ms",
+      "Client gets 200 OK immediately",
+      "Background worker batches every 500ms",
+      "Cassandra receives batched write",
+    ],
+    highlights: [["app"], ["app","cache"], ["app","cache"], ["cache"], ["cache","db"]],
+  },
+};
+
+const INVALIDATION_META = {
+  ttl: { name: "TTL (Time-To-Live)", mechanism: "Key expires after N seconds — zero coordination.", realWorld: "CDN images 24h. Weather API 10 min.", latency: "Low", consistency: "Eventual" },
+  event: { name: "Event-Driven (Pub/Sub)", mechanism: "DB write → publish event → all nodes invalidate.", realWorld: "Shopify order → Kafka → invalidate 12 regions.", latency: "Medium", consistency: "Strong-ish" },
+  "write-invalidate": { name: "Write-Invalidate", mechanism: "DELETE key on write; next read reloads fresh.", realWorld: "Profile update → DELETE cache:user:123.", latency: "Low", consistency: "Good" },
+  versioning: { name: "Versioning / Tags", mechanism: "Tag keys by entity; invalidate entire tag group.", realWorld: "CMS publish invalidates 50 tagged pages.", latency: "Medium", consistency: "Strong for groups" },
+};
+
+const SCENARIO_META = {
+  ecommerce: { name: "E-Commerce Catalog", description: "10M products, 100k reads/sec. Stale price 30s costs ~$2k.", stalenessBudget: "30 seconds", recommendedPattern: "cache-aside", recommendedInvalidation: "write-invalidate", ttl: "300s safety net" },
+  social: { name: "Social Feed Likes", description: "Billions of writes/day. Count off by 50 is fine.", stalenessBudget: "5–30 seconds", recommendedPattern: "write-behind", recommendedInvalidation: "ttl", ttl: "60s + batch flush" },
+  banking: { name: "Bank Balance", description: "Stale balance = regulatory violation.", stalenessBudget: "Zero", recommendedPattern: "write-through", recommendedInvalidation: "write-invalidate", ttl: "No TTL" },
+  cdn: { name: "CDN Static Assets", description: "JS/CSS/images. Changes only on deploy.", stalenessBudget: "Hours", recommendedPattern: "read-through", recommendedInvalidation: "ttl", ttl: "86400s + cache-bust" },
+};
+
+const STALENESS_PROFILES = {
+  ttl: [100,100,100,100,100,80,80,80,80,80],
+  event: [100,100,100,5,5,5,5,5,5,5],
+  "write-invalidate": [100,100,100,45,5,5,5,5,5,5],
+  versioning: [100,100,100,8,5,5,5,5,5,5],
+};
+
+function renderFlowDiagram(flow, highlight) {
+  const hl = new Set(highlight || []);
+  const ranks = {};
+  flow.nodes.forEach(n => {
+    if (!ranks[n.rank]) ranks[n.rank] = [];
+    ranks[n.rank].push(n);
+  });
+  const rankKeys = Object.keys(ranks).map(Number).sort((a,b) => a-b);
+  const nw = 110, nh = 34, rg = 52, ng = 24, pad = 20;
+  const positions = {};
+  let maxW = 0;
+  rankKeys.forEach(rk => {
+    const row = ranks[rk];
+    const rowW = row.length * nw + (row.length - 1) * ng;
+    maxW = Math.max(maxW, rowW);
+  });
+  rankKeys.forEach(rk => {
+    const row = ranks[rk];
+    const rowW = row.length * nw + (row.length - 1) * ng;
+    const startX = pad + (maxW - rowW) / 2;
+    row.forEach((n, i) => {
+      positions[n.id] = { x: startX + i * (nw + ng), y: pad + rk * (nh + rg), w: nw, h: nh };
+    });
+  });
+  const totalH = pad * 2 + rankKeys.length * nh + (rankKeys.length - 1) * rg;
+  const totalW = pad * 2 + maxW;
+  let svg = `<svg class="flow-svg" viewBox="0 0 ${totalW} ${totalH}" width="${totalW}" height="${totalH}">`;
+  svg += `<defs><marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#858585"/></marker></defs>`;
+  flow.edges.forEach(e => {
+    const a = positions[e.from], b = positions[e.to];
+    if (!a || !b) return;
+    const x1 = a.x + a.w / 2, y1 = a.y + a.h;
+    const x2 = b.x + b.w / 2, y2 = b.y;
+    if (a.y === b.y) { /* same rank horizontal */ }
+    const sx = a.y < b.y ? a.x + a.w/2 : a.x + a.w;
+    const sy = a.y < b.y ? a.y + a.h : a.y + a.h/2;
+    const tx = a.y < b.y ? b.x + b.w/2 : b.x;
+    const ty = a.y < b.y ? b.y : b.y + b.h/2;
+    const useVert = a.y !== b.y;
+    if (useVert) {
+      svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#858585" stroke-width="1.5" marker-end="url(#arr)"/>`;
+      if (e.label) svg += `<text x="${(x1+x2)/2}" y="${(y1+y2)/2-4}" text-anchor="middle" fill="#858585" font-size="9">${e.label}</text>`;
+    } else {
+      svg += `<line x1="${sx}" y1="${sy}" x2="${tx}" y2="${ty}" stroke="#858585" stroke-width="1.5" marker-end="url(#arr)"/>`;
+    }
+  });
+  flow.nodes.forEach(n => {
+    const p = positions[n.id];
+    const on = hl.has(n.id);
+    svg += `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="4" fill="${on ? '#1a3a5c' : '#252526'}" stroke="${on ? '#3794ff' : '#3c3c3c'}" stroke-width="${on ? 2 : 1}"/>`;
+    svg += `<text x="${p.x + p.w/2}" y="${p.y + p.h/2 + 4}" text-anchor="middle" fill="${on ? '#3794ff' : '#ccc'}" font-size="10" font-weight="${on ? 600 : 400}">${n.label}</text>`;
+  });
+  svg += `</svg>`;
+  return `<div class="flow-wrap">${svg}</div>`;
+}
+
+function renderBarChart(categories, series, suffix = "") {
+  const max = Math.max(...series.flatMap(s => s.data), 1);
+  let html = `<div class="bar-chart">`;
+  categories.forEach((cat, ci) => {
+    html += `<div class="bar-col"><div class="bar-stack">`;
+    series.forEach((s, si) => {
+      const v = s.data[ci] || 0;
+      const h = Math.max(2, (v / max) * 110);
+      const colors = ["#3794ff", "#4ec9b0", "#dcdcaa", "#f48771"];
+      html += `<div class="bar-seg" style="height:${h}px;background:${s.color || colors[si % colors.length]}" title="${s.name}: ${v}${suffix}"></div>`;
+    });
+    html += `</div><div class="bar-val">${series.length === 1 ? series[0].data[ci] + suffix : ""}</div><div class="bar-label">${cat}</div></div>`;
+  });
+  html += `</div>`;
+  if (series.length > 1) {
+    html += `<div class="row">${series.map((s,i) => `<span style="font-size:0.75rem;color:var(--muted)"><span style="display:inline-block;width:10px;height:10px;background:${s.color||['#3794ff','#4ec9b0','#dcdcaa'][i]};border-radius:2px;margin-right:4px"></span>${s.name}</span>`).join("")}</div>`;
+  }
+  return html;
+}
+
+function renderLineChart(categories, data, suffix = "%") {
+  const max = 100, min = 0, w = 600, h = 130, pad = 20;
+  const pts = data.map((v, i) => {
+    const x = pad + (i / (data.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((v - min) / (max - min)) * (h - pad * 2);
+    return `${x},${y}`;
+  }).join(" ");
+  const budget = 10;
+  const by = h - pad - ((budget - min) / (max - min)) * (h - pad * 2);
+  return `<div class="line-chart"><svg viewBox="0 0 ${w} ${h}">
+    <line x1="${pad}" y1="${by}" x2="${w-pad}" y2="${by}" stroke="#f48771" stroke-dasharray="4 3" stroke-width="1"/>
+    <text x="${w-pad-4}" y="${by-4}" text-anchor="end" fill="#f48771" font-size="9">Budget ${budget}${suffix}</text>
+    <polyline points="${pts}" fill="none" stroke="#4ec9b0" stroke-width="2"/>
+    ${data.map((v,i) => { const x = pad + (i/(data.length-1))*(w-pad*2); const y = h-pad-((v-min)/(max-min))*(h-pad*2); return `<circle cx="${x}" cy="${y}" r="3" fill="#4ec9b0"/>`; }).join("")}
+  </svg></div>
+  <div class="row">${categories.map(c => `<span style="font-size:0.65rem;color:var(--muted)">${c}</span>`).join("")}</div>`;
+}
+
+function getRecommendation() {
+  if (state.consistency === "strong") return {
+    pattern: "write-through", invalidation: "write-invalidate",
+    eviction: "No TTL — invalidate on write",
+    layers: "L1 optional → L2 Redis (consistent)",
+    reason: "Strong consistency required — synchronous write path, no stale reads.",
+  };
+  if (state.readRatio > 90 && state.dataSize === "small") return {
+    pattern: "cache-aside", invalidation: "event",
+    eviction: "LRU, allkeys-lru",
+    layers: "CDN → Redis cluster → DB replicas",
+    reason: "Read-heavy hot keys — cache-aside + event invalidation scales best.",
+  };
+  if (state.readRatio > 90 && state.dataSize === "large") return {
+    pattern: "read-through", invalidation: "ttl",
+    eviction: "LFU for long-tail, LRU for hot set",
+    layers: "CDN (large objects) → Redis (metadata) → S3/DB",
+    reason: "Large objects — CDN + metadata cache, don't cache full payloads in Redis.",
+  };
+  return {
+    pattern: "write-behind", invalidation: "ttl",
+    eviction: "TTL-based + maxmemory",
+    layers: "Redis write buffer → async DB flush",
+    reason: "Write-heavy — absorb spikes with write-behind, accept eventual persistence.",
+  };
+}
+
+function renderOverview() {
+  return `
+    <p>Caching sits between your app and the database to <strong>cut latency</strong> and <strong>reduce DB load</strong>.</p>
+    <div class="callout">Define SLA → Pick Pattern → Choose Invalidation → Set Staleness Budget → Compose Strategy</div>
+    <div class="grid-3">
+      <div class="stat"><div class="stat-label">Cache hit rate</div><div class="stat-value ok">85–99%</div></div>
+      <div class="stat"><div class="stat-label">Latency reduction</div><div class="stat-value">10–100×</div></div>
+      <div class="stat"><div class="stat-label">DB load reduction</div><div class="stat-value ok">60–95%</div></div>
+    </div>
+    <h2>The Caching Decision Loop</h2>
+    <div class="mermaid" id="mermaid-overview">
+flowchart LR
+  A[Define SLA] --> B[Pick Pattern]
+  B --> C[Invalidation]
+  C --> D[Staleness Budget]
+  D --> E[Full Strategy]
+    </div>
+    <div class="grid-2">
+      ${TABS.filter(t => t.id !== "overview").map(t => `
+        <div class="card"><div class="card-title">${t.label}</div>
+          <p>${{patterns:"How data flows on reads and writes.",invalidation:"TTL, events, write-invalidate, tags.",staleness:"How wrong can cache be?",strategy:"Pattern + invalidation + eviction + layers."}[t.id]}</p>
+        </div>`).join("")}
+    </div>
+    <h2>Interview One-Liner</h2>
+    <blockquote>"For {service}, I'd use <strong>cache-aside</strong> because reads dominate at 95:5. Invalidation via <strong>write-invalidate + 5min TTL safety net</strong>. Staleness budget is <strong>30 seconds</strong>. Layers: L1 in-process (100ms) → L2 Redis with LRU and maxmemory at 80% RAM."</blockquote>
+    <h2>Key Takeaways</h2>
+    <ul>
+      <li><strong>Cache-Aside</strong> is your default — know it cold.</li>
+      <li><strong>Never rely on TTL alone</strong> for data that changes and matters.</li>
+      <li><strong>Define staleness budget first</strong>, then pick invalidation.</li>
+      <li><strong>Combine methods</strong> — write-invalidate + TTL safety net.</li>
+      <li><strong>Multi-layer</strong> — CDN for static, Redis for hot keys, DB for truth.</li>
+      <li><strong>Always configure maxmemory</strong> — unbounded cache kills the cluster.</li>
+    </ul>`;
+}
+
+function renderPatterns() {
+  const p = state.pattern;
+  const meta = PATTERN_META[p];
+  const flow = PATTERN_FLOWS[p];
+  const step = Math.min(state.patternStep, flow.steps.length - 1);
+  return `
+    <p><strong>Core question:</strong> Who reads/writes the cache — the app or the cache layer?</p>
+    <div class="row">
+      ${Object.keys(PATTERN_META).map(id => `
+        <button class="btn-ghost${state.pattern===id?' active':''}" data-pattern="${id}">${PATTERN_META[id].short}</button>
+      `).join("")}
+    </div>
+    <div class="card">
+      <div class="card-title">${meta.name} <span class="pill">Step ${step+1}/${flow.steps.length}</span></div>
+      <p>${meta.tagline}</p>
+      ${renderFlowDiagram(flow, flow.highlights[step])}
+      <div class="callout">${flow.steps[step]}</div>
+      <div class="row">
+        <button class="btn-ghost" id="patPrev" ${step===0?'disabled':''}>Previous</button>
+        <button class="btn-primary" id="patNext" ${step===flow.steps.length-1?'disabled':''}>Next Step</button>
+        <button class="btn-ghost" id="patReset">Reset</button>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card"><div class="card-title">Real-World Case</div><p>${meta.realWorld}</p></div>
+      <div class="card"><div class="card-title">When to Use</div><p>${meta.when}</p></div>
+    </div>
+    <h2>Pattern Cheat Sheet</h2>
+    <table>
+      <tr><th>Pattern</th><th>Read Path</th><th>Write Path</th><th>Consistency</th></tr>
+      <tr><td>Cache-Aside</td><td>App → Cache → DB on miss</td><td>App writes DB, invalidates cache</td><td>Eventual</td></tr>
+      <tr><td>Read-Through</td><td>Cache auto-loads on miss</td><td>App writes DB directly</td><td>Eventual</td></tr>
+      <tr><td>Write-Through</td><td>Cache always fresh</td><td>Sync to cache + DB</td><td>Strong</td></tr>
+      <tr><td>Write-Behind</td><td>Cache may be ahead of DB</td><td>Cache first, async DB</td><td>Eventual</td></tr>
+    </table>
+    <h2>Pros / Cons — ${meta.short}</h2>
+    <table>
+      <tr><th>Pros</th><th>Cons</th></tr>
+      ${meta.pros.map((pro,i) => `<tr><td>${pro}</td><td>${meta.cons[i]||""}</td></tr>`).join("")}
+    </table>
+    <h2>Mermaid — ${meta.short} Sequence</h2>
+    <div class="mermaid mermaid-pattern">${getPatternMermaid(p)}</div>`;
+}
+
+function getPatternMermaid(p) {
+  const m = {
+    "cache-aside": `sequenceDiagram
+    participant C as Client
+    participant A as App
+    participant R as Redis
+    participant D as Database
+    C->>A: GET /product/42
+    A->>R: GET key
+    alt Cache MISS
+        R-->>A: null
+        A->>D: SELECT
+        D-->>A: row
+        A->>R: SET key TTL=300s
+    end
+    A-->>C: 200 OK`,
+    "read-through": `sequenceDiagram
+    participant A as App
+    participant C as Cache Library
+    participant D as Database
+    A->>C: cache.get("user:123")
+    C->>D: SELECT on miss
+    D-->>C: row
+    C-->>A: value`,
+    "write-through": `sequenceDiagram
+    participant A as App
+    participant C as Cache
+    participant D as Database
+    A->>C: write session
+    C->>D: sync write
+    D-->>C: ACK
+    C-->>A: ACK`,
+    "write-behind": `sequenceDiagram
+    participant A as App
+    participant C as Redis
+    participant D as Database
+    A->>C: INCR counter
+    C-->>A: ACK
+    Note over C,D: async batch flush
+    C->>D: batch write`,
+  };
+  return m[p];
+}
+
+function renderInvalidation() {
+  const m = INVALIDATION_META[state.invalidation];
+  const scen = SCENARIO_META[state.invScenario];
+  const timeline = STALENESS_PROFILES[state.invalidation];
+  const match = scen.recommendedInvalidation === state.invalidation;
+  const cats = ["t+0s","t+1s","t+2s","t+3s","t+5s","t+10s","t+30s","t+60s","t+5m","t+10m"];
+  return `
+    <p><strong>Core question:</strong> How does the cache know data changed?</p>
+    <blockquote>"There are only two hard things in CS: cache invalidation and naming things."</blockquote>
+    <div class="row">
+      <label>Method: </label>
+      <select id="invSelect">
+        ${Object.keys(INVALIDATION_META).map(k => `<option value="${k}"${state.invalidation===k?' selected':''}>${INVALIDATION_META[k].name}</option>`).join("")}
+      </select>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">${m.name}</div>
+        <p><strong>Mechanism:</strong> ${m.mechanism}</p>
+        <p><strong>Real case:</strong> ${m.realWorld}</p>
+        <div class="grid-2">
+          <div class="stat"><div class="stat-label">Coordination</div><div class="stat-value">${m.latency}</div></div>
+          <div class="stat"><div class="stat-label">Consistency</div><div class="stat-value">${m.consistency}</div></div>
+        </div>
+      </div>
+      <div>
+        <h2>Staleness after write (simulated)</h2>
+        ${renderLineChart(cats, timeline)}
+      </div>
+    </div>
+    <h2>Pick a scenario</h2>
+    <div class="row">
+      ${Object.keys(SCENARIO_META).map(k => `
+        <button class="btn-ghost${state.invScenario===k?' active':''}" data-scenario="${k}">${SCENARIO_META[k].name}</button>
+      `).join("")}
+    </div>
+    <div class="grid-3">
+      <div class="stat"><div class="stat-label">Staleness budget</div><div class="stat-value warn">${scen.stalenessBudget}</div></div>
+      <div class="stat"><div class="stat-label">Best pattern</div><div class="stat-value">${PATTERN_META[scen.recommendedPattern].short}</div></div>
+      <div class="stat"><div class="stat-label">Best invalidation</div><div class="stat-value ok">${INVALIDATION_META[scen.recommendedInvalidation].name}</div></div>
+    </div>
+    <p>${scen.description}</p>
+    <div class="callout ${match?'success':'warn'}">${match
+      ? `${m.name} fits ${scen.name}. TTL safety net: ${scen.ttl}.`
+      : `For ${scen.name}, prefer ${INVALIDATION_META[scen.recommendedInvalidation].name} over ${m.name}. Budget: ${scen.stalenessBudget}.`}</div>
+    <h2>Write-Invalidate Flow</h2>
+    <div class="mermaid">
+sequenceDiagram
+    participant A as App
+    participant R as Redis
+    participant D as Database
+    A->>D: UPDATE profile
+    D-->>A: OK
+    A->>R: DELETE cache:user:123
+    A->>R: GET cache:user:123
+    R-->>A: MISS
+    A->>D: SELECT fresh row
+    A->>R: SET cache:user:123
+    </div>
+    <h2>Event-Driven (Multi-Region)</h2>
+    <div class="mermaid">
+flowchart LR
+    W[Write Service] --> DB[(Database)]
+    W --> K[Kafka Event]
+    K --> R1[Redis R1]
+    K --> R2[Redis R2]
+    K --> R3[Redis RN]
+    </div>
+    <table class="striped">
+      <tr><th>Method</th><th>Consistency</th><th>Best For</th></tr>
+      <tr><td>TTL</td><td>Eventual</td><td>CDN, weather, static config</td></tr>
+      <tr><td>Write-Invalidate</td><td>Good</td><td>User profiles, CRUD APIs</td></tr>
+      <tr><td>Event-Driven</td><td>Strong-ish</td><td>Multi-region inventory</td></tr>
+      <tr><td>Versioning/Tags</td><td>Strong for groups</td><td>CMS, tagged pages</td></tr>
+    </table>
+    <div class="callout">Production tip: combine write-invalidate + TTL as safety net.</div>`;
+}
+
+function renderStaleness() {
+  const avg = state.useEventInv ? Math.min(2, 100 / Math.max(state.writeRate, 1)) : state.ttl / 2;
+  const stalePct = state.useEventInv ? Math.min(5, state.writeRate * 0.3) : Math.min(95, (state.ttl / 120) * 40 + state.writeRate * 0.5);
+  const spread = state.ttl / 60;
+  const dist = state.useEventInv
+    ? [85, 10, 3, 1, 1]
+    : [Math.max(5, 40-spread*10), Math.min(35, 10+spread*8), Math.min(30, 5+spread*10), Math.min(25, spread*8), Math.min(20, spread*5)];
+  return `
+    <div class="callout">Staleness = how long cached data diverges from truth after a write. Define a <strong>staleness budget</strong>, then pick TTL + invalidation to stay inside it.</div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Controls</div>
+        <p><strong>TTL:</strong> ${state.ttl}s</p>
+        <div class="row">${[30,60,300,900,3600].map(v => `<button class="btn-ghost${state.ttl===v?' active':''}" data-ttl="${v}">${v<60?v+'s':v<3600?(v/60)+'m':(v/3600)+'h'}</button>`).join("")}</div>
+        <p><strong>Writes/min:</strong> ${state.writeRate}</p>
+        <div class="row">${[1,5,10,50,100].map(v => `<button class="btn-ghost${state.writeRate===v?' active':''}" data-wrate="${v}">${v}/min</button>`).join("")}</div>
+        <label class="check"><input type="checkbox" id="eventInv" ${state.useEventInv?'checked':''}/> Event-driven invalidation enabled</label>
+      </div>
+      <div>
+        <h2>Computed metrics</h2>
+        <div class="grid-2">
+          <div class="stat"><div class="stat-label">Avg staleness window</div><div class="stat-value ${avg>30?'bad':'ok'}">${avg.toFixed(1)}s</div></div>
+          <div class="stat"><div class="stat-label">Stale read probability</div><div class="stat-value ${stalePct>10?'warn':'ok'}">${stalePct.toFixed(1)}%</div></div>
+        </div>
+      </div>
+    </div>
+    <h2>Staleness duration distribution</h2>
+    ${renderBarChart(["0-5s","5-15s","15-30s","30-60s","60s+"], [{ name: "Stale reads", data: dist }], "%")}
+    <h2>Timeline comparison (after write)</h2>
+    <div class="timeline-bar">
+TTL-only (300s):          ████████████████████░░░░  stale up to 5 min
+Write-invalidate:         ████░░░░░░░░░░░░░░░░░░░░  stale ~1 read cycle
+Event-driven:             ██░░░░░░░░░░░░░░░░░░░░░░  stale ~propagation delay
+    </div>
+    <div class="grid-2">
+      <div class="card"><div class="card-title">Flash sale (Prime Day)</div>
+        <p>Problem: TTL-only → old price up to 5 min.</p>
+        <p><strong>Fix:</strong> write-invalidate on price change + 30s TTL safety net.</p></div>
+      <div class="card"><div class="card-title">Leaderboard scores</div>
+        <p>Problem: over-engineering strong consistency wastes resources.</p>
+        <p><strong>Fix:</strong> accept 30s staleness; write-behind counters.</p></div>
+    </div>
+    <table class="striped">
+      <tr><th>Level</th><th>Impact</th><th>Example</th><th>OK?</th></tr>
+      <tr><td>0s</td><td>Always correct</td><td>Bank balance, checkout inventory</td><td>Required</td></tr>
+      <tr><td>1–5s</td><td>Invisible</td><td>Social likes, view counts</td><td>Usually yes</td></tr>
+      <tr><td>30s–5min</td><td>Noticeable</td><td>News feed, stock ticker</td><td>Case by case</td></tr>
+      <tr><td>Hours+</td><td>Immutable data</td><td>CDN assets, static config</td><td>Yes</td></tr>
+    </table>`;
+}
+
+function renderStrategy() {
+  const rec = getRecommendation();
+  const latency = [
+    { p: "cache-aside", hit: 2, miss: 48, write: 5 },
+    { p: "read-through", hit: 2, miss: 45, write: 8 },
+    { p: "write-through", hit: 2, miss: 8, write: 52 },
+    { p: "write-behind", hit: 1, miss: 3, write: 2 },
+  ];
+  return `
+    <p>Cache strategy = pattern + invalidation + eviction + layering.</p>
+    <div class="card">
+      <div class="card-title">Decision Inputs</div>
+      <p><strong>Read ratio:</strong> ${state.readRatio}%</p>
+      <div class="row">${[50,80,95,99].map(v => `<button class="btn-ghost${state.readRatio===v?' active':''}" data-read="${v}">${v}%</button>`).join("")}</div>
+      <p><strong>Consistency:</strong></p>
+      <div class="row">
+        <button class="btn-ghost${state.consistency==='eventual'?' active':''}" data-cons="eventual">Eventual OK</button>
+        <button class="btn-ghost${state.consistency==='strong'?' active':''}" data-cons="strong">Strong Required</button>
+      </div>
+      <p><strong>Object size:</strong></p>
+      <div class="row">
+        <button class="btn-ghost${state.dataSize==='small'?' active':''}" data-size="small">Small (&lt;1KB)</button>
+        <button class="btn-ghost${state.dataSize==='large'?' active':''}" data-size="large">Large (&gt;100KB)</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Your Architecture Prescription <span class="pill">Recommended</span></div>
+      <div class="grid-2">
+        <div class="stat"><div class="stat-label">Pattern</div><div class="stat-value">${PATTERN_META[rec.pattern].short}</div></div>
+        <div class="stat"><div class="stat-label">Invalidation</div><div class="stat-value">${INVALIDATION_META[rec.invalidation].name}</div></div>
+        <div class="stat"><div class="stat-label">Eviction</div><div class="stat-value">${rec.eviction}</div></div>
+        <div class="stat"><div class="stat-label">Layers</div><div class="stat-value">${rec.layers}</div></div>
+      </div>
+      <div class="callout success">${rec.reason}</div>
+    </div>
+    <h2>Pattern latency comparison (typical ms)</h2>
+    ${renderBarChart(
+      latency.map(l => PATTERN_META[l.p].short),
+      [
+        { name: "Read (hit)", data: latency.map(l => l.hit), color: "#4ec9b0" },
+        { name: "Read (miss)", data: latency.map(l => l.miss), color: "#dcdcaa" },
+        { name: "Write", data: latency.map(l => l.write), color: "#3794ff" },
+      ],
+      " ms"
+    )}
+    <h2>Decision Tree</h2>
+    <div class="mermaid">
+flowchart TD
+    A[New Service] --> B{Strong consistency?}
+    B -->|Yes| C[Write-Through + Write-Invalidate]
+    B -->|No| D{Read ratio > 90%?}
+    D -->|Yes| E{Object size?}
+    E -->|Small| F[Cache-Aside + Event Invalidation]
+    E -->|Large| G[CDN + Redis metadata]
+    D -->|No| H[Write-Behind + TTL]
+    </div>
+    <h2>Multi-Layer Architecture</h2>
+    <div class="mermaid">
+flowchart TD
+    U[User] --> CDN[CDN Edge TTL 24h]
+    U --> GW[API Gateway]
+    GW --> L1[L1 In-Process TTL 100ms]
+    L1 -->|miss| L2[L2 Redis TTL 5min]
+    L2 -->|miss| DB[(Database)]
+    </div>
+    <h2>Scenario Prescriptions</h2>
+    <table class="striped">
+      <tr><th>Scenario</th><th>Pattern</th><th>Invalidation</th><th>Staleness Budget</th></tr>
+      ${Object.values(SCENARIO_META).map(s => `<tr><td>${s.name}</td><td>${PATTERN_META[s.recommendedPattern].short}</td><td>${INVALIDATION_META[s.recommendedInvalidation].name}</td><td>${s.stalenessBudget}</td></tr>`).join("")}
+    </table>
+    <h2>Eviction Policies</h2>
+    <table class="striped">
+      <tr><th>Policy</th><th>Evicts</th><th>Best For</th><th>Watch Out</th></tr>
+      <tr><td>LRU</td><td>Least recently used</td><td>General web caching</td><td>Scan attacks evict hot keys</td></tr>
+      <tr><td>LFU</td><td>Least frequently used</td><td>Long-tail content</td><td>New keys evicted early</td></tr>
+      <tr><td>TTL-only</td><td>Expired keys</td><td>CDN, time-bound data</td><td>Memory fills before TTL</td></tr>
+      <tr><td>Random</td><td>Random key</td><td>Prototypes only</td><td>Unpredictable in prod</td></tr>
+    </table>
+    <div class="callout warn">Always set maxmemory + eviction policy. Unbounded cache = OOM crash.</div>`;
+}
+
+function renderInterview() {
+  const openSet = new Set(state.openQuestions || []);
+  return `
+    <p>Practice like a real loop. Click each question to reveal a model answer, then do the whiteboard exercise.</p>
+    <h2>5 Interview Questions</h2>
+    ${INTERVIEW_QUESTIONS.map((item, i) => `
+      <div class="card interview-q${openSet.has(i) ? ' open' : ''}" data-q="${i}">
+        <div class="card-title">Q${i + 1}: ${item.q}</div>
+        <div class="answer${openSet.has(i) ? '' : ' hidden'}">${item.a}</div>
+      </div>
+    `).join("")}
+    <h2>Whiteboard Prompt</h2>
+    <div class="card">
+      <div class="card-title">Scenario</div>
+      <p style="color:var(--text)">${WHITEBOARD.scenario}</p>
+      <h3>Draw these components and label data flow</h3>
+      <ul class="whiteboard-list">
+        ${WHITEBOARD.draw.map(d => `<li>${d}</li>`).join("")}
+      </ul>
+      <div class="mermaid">
+flowchart TD
+    C[Client] --> CDN[CDN Edge]
+    C --> LB[Load Balancer]
+    LB --> APP[App Server]
+    APP --> L1[L1 In-Process Cache]
+    L1 -->|miss| R[Redis Cluster]
+    R -->|miss| DB[(PostgreSQL Replicas)]
+    W[Price Update Service] --> K[Kafka Invalidation]
+    K --> R
+    K --> CDN
+      </div>
+      <h3>Follow-up probes (prepare answers)</h3>
+      <ul>${WHITEBOARD.followUps.map(f => `<li>${f}</li>`).join("")}</ul>
+    </div>
+    <div class="callout success">Tip: Start with requirements (read/write ratio, staleness budget), then pick pattern → invalidation → layers. Name trade-offs unprompted.</div>`;
+}
+
+function bindEvents() {
+  document.querySelectorAll("#mainTabs .tab").forEach(t => {
+    t.onclick = () => { state.tab = t.dataset.id; save(); };
+  });
+
+  document.querySelectorAll("[data-pattern]").forEach(b => {
+    b.onclick = () => { state.pattern = b.dataset.pattern; state.patternStep = 0; save(); };
+  });
+  const patPrev = document.getElementById("patPrev");
+  const patNext = document.getElementById("patNext");
+  const patReset = document.getElementById("patReset");
+  if (patPrev) patPrev.onclick = () => { state.patternStep = Math.max(0, state.patternStep - 1); save(); };
+  if (patNext) patNext.onclick = () => { state.patternStep = Math.min(PATTERN_FLOWS[state.pattern].steps.length - 1, state.patternStep + 1); save(); };
+  if (patReset) patReset.onclick = () => { state.patternStep = 0; save(); };
+
+  const invSelect = document.getElementById("invSelect");
+  if (invSelect) invSelect.onchange = e => { state.invalidation = e.target.value; save(); };
+  document.querySelectorAll("[data-scenario]").forEach(b => {
+    b.onclick = () => { state.invScenario = b.dataset.scenario; save(); };
+  });
+
+  document.querySelectorAll("[data-ttl]").forEach(b => {
+    b.onclick = () => { state.ttl = +b.dataset.ttl; save(); };
+  });
+  document.querySelectorAll("[data-wrate]").forEach(b => {
+    b.onclick = () => { state.writeRate = +b.dataset.wrate; save(); };
+  });
+  const eventInv = document.getElementById("eventInv");
+  if (eventInv) eventInv.onchange = e => { state.useEventInv = e.target.checked; save(); };
+
+  document.querySelectorAll("[data-read]").forEach(b => {
+    b.onclick = () => { state.readRatio = +b.dataset.read; save(); };
+  });
+  document.querySelectorAll("[data-cons]").forEach(b => {
+    b.onclick = () => { state.consistency = b.dataset.cons; save(); };
+  });
+  document.querySelectorAll("[data-size]").forEach(b => {
+    b.onclick = () => { state.dataSize = b.dataset.size; save(); };
+  });
+
+  document.querySelectorAll(".interview-q").forEach(card => {
+    card.onclick = () => {
+      const i = +card.dataset.q;
+      const open = new Set(state.openQuestions || []);
+      if (open.has(i)) open.delete(i); else open.add(i);
+      state.openQuestions = [...open];
+      save();
+    };
+  });
+}
+
+async function renderMermaid() {
+  const nodes = document.querySelectorAll(".mermaid");
+  for (const el of nodes) {
+    const src = el.textContent.trim();
+    el.removeAttribute("data-processed");
+    try {
+      const { svg } = await mermaid.render("m" + Math.random().toString(36).slice(2), src);
+      el.innerHTML = svg;
+    } catch (e) {
+      el.innerHTML = `<pre style="color:var(--danger);font-size:0.8rem">${e.message}</pre>`;
+    }
+  }
+}
+
+function render() {
+  document.getElementById("mainTabs").innerHTML = TABS.map(t =>
+    `<button class="tab${state.tab===t.id?' active':''}" data-id="${t.id}">${t.label}</button>`
+  ).join("");
+
+  const renderers = {
+    overview: renderOverview,
+    patterns: renderPatterns,
+    invalidation: renderInvalidation,
+    staleness: renderStaleness,
+    strategy: renderStrategy,
+    interview: renderInterview,
+  };
+  document.getElementById("content").innerHTML = renderers[state.tab]();
+  bindEvents();
+  renderMermaid();
+}
+
+render();
+</script>
+</body>
+</html>

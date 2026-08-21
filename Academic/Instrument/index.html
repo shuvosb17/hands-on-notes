@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Instrumentation — 2-mark Q&amp;A</title>
+  <meta name="description" content="60 short Instrumentation exam answers with figures. Deploy on Cloudflare Pages." />
+  <link rel="stylesheet" href="./css/exam.css" />
+</head>
+<body>
+  <div class="wrap">
+    <h1>Instrumentation — 2-mark Q&amp;A</h1>
+    <p class="sub">60 short exam answers. Open a question, say the definition, write the formula, add the example.</p>
+
+    <div class="stats">
+      <div class="stat"><b>60</b><span>Questions</span></div>
+      <div class="stat"><b>13</b><span>Topics</span></div>
+      <div class="stat warn"><b id="stat-core">44</b><span>Exam-core</span></div>
+      <div class="stat ok"><b id="stat-known">0/60</b><span>Marked known</span></div>
+    </div>
+
+    <div class="callout">
+      <strong>If time is short</strong>
+      Drill Q3, Q6–10, Q17, Q21, Q25, Q30–32, Q33–44, Q45–51, and Q52–60. Switch to Exam core to hide the rest.
+    </div>
+
+    <div class="row" id="pills-mode">
+      <button class="pill on" data-mode="all">All 60</button>
+      <button class="pill" data-mode="core">Exam core</button>
+      <input class="search" id="search" type="search" placeholder="Search: Nyquist, PTC, CMRR…" />
+      <span class="meta" id="showing"></span>
+    </div>
+
+    <div class="row" id="pills-part"></div>
+    <hr class="hr" />
+
+    <h2 id="map-title" style="margin-bottom:10px">Topic map</h2>
+    <div class="map" id="topic-map"></div>
+    <div id="groups"></div>
+
+    <footer>Static HTML for Cloudflare Pages · no build step · tick Known when you can write the answer without looking</footer>
+  </div>
+
+  <script src="./js/qa-data.js"></script>
+  <script src="./js/figures.js"></script>
+  <script src="./js/exam.js"></script>
+</body>
+</html>
